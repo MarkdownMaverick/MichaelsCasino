@@ -1,0 +1,8 @@
+Michaels_Casino
+obj/gamepad_sdl.o
+obj/main.o
+obj/mainmenu.o
+obj/useraccount.o
+accounts.json
+leaderboard.json
+sfx/track.mp3

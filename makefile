@@ -8,20 +8,20 @@ UNAME_M := $(shell uname -m)
 # Set OS type
 ifeq ($(UNAME_S),Linux)
     OS := LINUX
-    LIBS_EXTRA := -lX11 -ldl -lpthread -lrt
+    LIBS_EXTRA := -lX11 -ldl -lpthread -lrt -lSDL2
     EXE :=
 endif
 
 ifeq ($(UNAME_S),Darwin)
     OS := MACOS
-    LIBS_EXTRA := -framework Cocoa -framework OpenGL
+    LIBS_EXTRA := -framework Cocoa -framework OpenGL -lSDL2
     EXE :=
 endif
 
 # Windows detection (via MSYS2/MinGW)
 ifeq ($(OS_TYPE),Windows_NT)
     OS := WINDOWS
-    LIBS_EXTRA := -lws2_32
+    LIBS_EXTRA := -lws2_32 -lSDL2
     EXE := .exe
 endif
 
@@ -29,16 +29,17 @@ endif
 ifeq ($(OS),)
     ifneq (,$(findstring MINGW,$(shell uname)))
         OS := WINDOWS
-        LIBS_EXTRA := -lws2_32
+        LIBS_EXTRA := -lws2_32 -lSDL2
         EXE := .exe
     endif
 endif
 
-# ── Compiler & Flags ────────────────────────────────────────
+# ── Compiler & Flags ─ Strict & non strict
 CC := gcc
-#CFLAGS := -Wall -Wextra -std=c99 -O2 -march=native -pipe
 
-CFLAGS := -Wall -Wextra -Wpedantic -std=c99 -O0 -g \
+CFLAGS := -Wall -Wextra -std=c99 -O2 -march=native -pipe
+
+#CFLAGS := -Wall -Wextra -Wpedantic -std=c99 -O0 -g \
           -Wunused -Wunused-variable -Wunused-parameter -Wunused-function \
           -Wshadow -Wcast-align -Wwrite-strings -Wstrict-prototypes \
           -Wmissing-prototypes -Wredundant-decls -Wnested-externs \
@@ -102,11 +103,11 @@ info:
 install-deps:
 	@echo "Installing dependencies for $(OS)..."
 ifeq ($(OS),LINUX)
-	sudo apt update && sudo apt install -y libraylib-dev libjson-c-dev build-essential
+	sudo pacman -S sdl2 raylib json-c base-devel || sudo apt update && sudo apt install -y libsdl2-dev libraylib-dev libjson-c-dev build-essential
 else ifeq ($(OS),MACOS)
-	brew install raylib json-c
+	brew install raylib json-c sdl2
 else ifeq ($(OS),WINDOWS)
-	@echo "Install via MSYS2: pacman -S mingw-w64-x86_64-raylib mingw-w64-x86_64-json-c"
+	@echo "Install via MSYS2: pacman -S mingw-w64-x86_64-raylib mingw-w64-x86_64-json-c mingw-w64-x86_64-SDL2"
 else
 	@echo "❌ Unsupported OS: $(OS)"
 endif
