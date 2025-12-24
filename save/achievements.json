@@ -1,0 +1,213 @@
+{
+	"version":	1,
+	"last_updated":	"2025-12-23T00:00:00Z",
+	"achievements":	[{
+			"name":	"Novice Player",
+			"description":	"Play 10 Games",
+			"target":	10
+		}, {
+			"name":	"Regular",
+			"description":	"Play 100 Games",
+			"target":	100
+		}, {
+			"name":	"Veteran",
+			"description":	"Play 500 Games",
+			"target":	500
+		}, {
+			"name":	"Beginner Luck",
+			"description":	"Win 10 Games",
+			"target":	10
+		}, {
+			"name":	"Champion",
+			"description":	"Win 100 Games",
+			"target":	100
+		}, {
+			"name":	"Master",
+			"description":	"Win 500 Games",
+			"target":	500
+		}, {
+			"name":	"Grandmaster",
+			"description":	"Win 1000 Games",
+			"target":	1000
+		}, {
+			"name":	"Flint's Nemesis",
+			"description":	"Bankrupt Flint",
+			"target":	1
+		}, {
+			"name":	"Thea's Downfall",
+			"description":	"Bankrupt Thea",
+			"target":	1
+		}, {
+			"name":	"Bob's Ruin",
+			"description":	"Bankrupt Bob",
+			"target":	1
+		}, {
+			"name":	"Ouch",
+			"description":	"Lose 10 Games",
+			"target":	10
+		}, {
+			"name":	"Bad Day",
+			"description":	"Lose 50 Games",
+			"target":	50
+		}, {
+			"name":	"Rough Patch",
+			"description":	"Lose 100 Games",
+			"target":	100
+		}, {
+			"name":	"Joker Jackpot",
+			"description":	"Match Jokers",
+			"target":	1
+		}, {
+			"name":	"Joker Pro",
+			"description":	"Win in Less Than 20 Rounds",
+			"target":	1
+		}, {
+			"name":	"Quick Win",
+			"description":	"Win 1,000 in One Go",
+			"target":	1000
+		}, {
+			"name":	"Big Score",
+			"description":	"Win 5,000 in One Go",
+			"target":	5000
+		}, {
+			"name":	"Huge Payout",
+			"description":	"Win 10,000 in One Go",
+			"target":	10000
+		}, {
+			"name":	"Massive Win",
+			"description":	"Win 50,000 in One Go",
+			"target":	50000
+		}, {
+			"name":	"Jackpot Hunter",
+			"description":	"Win 100,000 in One Go",
+			"target":	100000
+		}, {
+			"name":	"Piggy Bank",
+			"description":	"Reach 100 Tokens",
+			"target":	100
+		}, {
+			"name":	"Deep Pockets",
+			"description":	"Reach 500 Tokens",
+			"target":	500
+		}, {
+			"name":	"High Roller",
+			"description":	"Reach 1,000 Tokens",
+			"target":	1000
+		}, {
+			"name":	"Millionaire",
+			"description":	"Reach 10,000 Tokens",
+			"target":	10000
+		}, {
+			"name":	"Elite",
+			"description":	"Reach 100k Tokens",
+			"target":	100000
+		}, {
+			"name":	"Spare Change",
+			"description":	"Reach 50k Credits",
+			"target":	50000
+		}, {
+			"name":	"Mega Rich",
+			"description":	"Reach 100k Credits",
+			"target":	100000
+		}, {
+			"name":	"Tycoon",
+			"description":	"Reach 500k Credits",
+			"target":	500000
+		}, {
+			"name":	"Credit King",
+			"description":	"Reach 1M Credits",
+			"target":	1000000
+		}, {
+			"name":	"Credit Emperor",
+			"description":	"Reach 10M Credits",
+			"target":	10000000
+		}, {
+			"name":	"BJ Rookie",
+			"description":	"Win 10 BJ Hands",
+			"target":	10
+		}, {
+			"name":	"BJ Pro",
+			"description":	"Win 50 BJ Hands",
+			"target":	50
+		}, {
+			"name":	"BJ Expert",
+			"description":	"Win 100 BJ Hands",
+			"target":	100
+		}, {
+			"name":	"Card Counter",
+			"description":	"Win 500 BJ Hands",
+			"target":	500
+		}, {
+			"name":	"21 Master",
+			"description":	"Win 1,000 BJ Hands",
+			"target":	1000
+		}, {
+			"name":	"Heating Up",
+			"description":	"Win 3 in a Row",
+			"target":	3
+		}, {
+			"name":	"On Fire",
+			"description":	"Win 5 in a Row",
+			"target":	5
+		}, {
+			"name":	"Unstoppable",
+			"description":	"Win 10 in a Row",
+			"target":	10
+		}, {
+			"name":	"Godlike",
+			"description":	"Win 15 in a Row",
+			"target":	15
+		}, {
+			"name":	"Invincible",
+			"description":	"Win 20 in a Row",
+			"target":	20
+		}, {
+			"name":	"Flush Finder",
+			"description":	"Get a Flush",
+			"target":	1
+		}, {
+			"name":	"Four of a Kind",
+			"description":	"Get a 4 of a Kind",
+			"target":	1
+		}, {
+			"name":	"Full House Hero",
+			"description":	"Get a Full House",
+			"target":	1
+		}, {
+			"name":	"Straight Flush Pro",
+			"description":	"Get a Straight Flush",
+			"target":	1
+		}, {
+			"name":	"Slot King",
+			"description":	"Get a Royal Flush",
+			"target":	1
+		}, {
+			"name":	"Lucky Charm",
+			"description":	"Spin 100 Times",
+			"target":	100
+		}, {
+			"name":	"High Variance",
+			"description":	"Spin 1,000 Times",
+			"target":	1000
+		}, {
+			"name":	"Slot Marathon",
+			"description":	"Spin 5,000 Times",
+			"target":	5000
+		}, {
+			"name":	"Its A Secret",
+			"description":	"Secret achievement for jokers gambit , to win you need 3 out of",
+			"target":	1
+		}, {
+			"name":	"Completionist",
+			"description":	"Earn all other achievements to unlock.",
+			"target":	1
+		}],
+	"players":	{
+		"Player1":	{
+			"unlocked":	[false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+		},
+		"Player2":	{
+			"unlocked":	[false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+		}
+	}
+}

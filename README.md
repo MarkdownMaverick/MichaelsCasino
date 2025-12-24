@@ -74,3 +74,33 @@ https://github.com/MarkdownMaverick/jokersgambit/blob/main/credits.md
 
 ---
 
+**Michael's Casino – Core Project Description**
+
+Michael's Casino is a stylish, retro-inspired 2D casino game suite built with Raylib (C99), featuring multiple classic and original gambling games in a unified lobby environment.
+
+**Current Status & Focus**  
+The project is currently in the **core framework phase** – all foundational systems are being built and polished before integrating the full game modes. The goal is a rock-solid, extensible base that feels premium from the moment the player launches the game.
+
+**In Progress Core Features**
+- **Main Menu & Navigation**: Clean main menu with access to Lobby, Accounts, Shop, Settings, Leaderboard, and Achievements. Full keyboard, mouse, and gamepad support (SDL2).
+- **Accounts System**: Up to 5 accounts (3 fixed AI opponents + 2 human players). Persistent JSON storage with credits, tokens, stats, and member status tiers (Member → Presidential).
+- **Settings**: Music toggle, AI delay, card cover, window scale, fullscreen – all persisted via JSON.
+- **Shop**: Token purchase packs with tiered discounts and sell-back option. Modern card-style UI.
+- **Achievements**: 50 achievements displayed in a 5×10 grid using a texture atlas. Full persistence via `achievements.json`, with detailed info panel, hover/selection, and debug force-check button.
+- **Leaderboard**: Persistent high-score tracking across games.
+- **Data Persistence**: Separate JSON files in a `save/` folder for accounts, leaderboard, achievements, and settings – easy to edit manually for testing/cheating.
+- **UI Polish**: Consistent colors, hover/selection feedback, navigation sounds, centered layout with dynamic scaling.
+
+**Games in Progress**
+- **Joker's Gambit**: Fully built and ready for lobby integration (original card-ranking game with jokers).
+- Blackjack and Slot Reels planned next.
+
+**Technical Highlights**
+- Raylib for rendering, audio, input
+- SDL2 for robust gamepad support
+- cJSON for clean, human-readable save files
+- Modular structure (main, mainmenu, useraccount, gamepad_sdl)
+- Strict warning-as-error compilation for code quality
+
+**Vision**  
+A polished, addictive casino experience with deep progression (achievements, member ranks, token economy), local multiplayer feel (vs AI personalities: Bob, Thea, Flint), and a satisfying loop of earning credits/tokens across multiple games. The core is designed to be easily extensible for future additions like Poker, Roulette, etc.
