@@ -37,9 +37,9 @@ endif
 # ── Compiler & Flags ─ Strict & non strict
 CC := gcc
 
-CFLAGS := -Wall -Wextra -std=c99 -O2 -march=native -pipe
+#CFLAGS := -Wall -Wextra -std=c99 -O2 -march=native -pipe
 
-#CFLAGS := -Wall -Wextra -Wpedantic -std=c99 -O0 -g \
+CFLAGS := -Wall -Wextra -Wpedantic -std=c99 -O0 -g \
           -Wunused -Wunused-variable -Wunused-parameter -Wunused-function \
           -Wshadow -Wcast-align -Wwrite-strings -Wstrict-prototypes \
           -Wmissing-prototypes -Wredundant-decls -Wnested-externs \
@@ -90,6 +90,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 clean:
 	@echo "🧹 Cleaning..."
 	rm -rf $(OBJ_DIR) $(TARGET)
+	@echo "🗑️  Clearing save folder..."
+	rm -rf save/*
 
 run: $(TARGET)
 	@echo "🎮 Starting game on $(OS)..."

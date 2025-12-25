@@ -9,9 +9,6 @@
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
-#ifndef CLAMP
-#define CLAMP(val, min, max) ((val) < (min) ? (min) : ((val) > (max) ? (max) : (val)))
-#endif
 void ShowAccountStatus(LobbyState *g, const char *msg)
 {
     strncpy(g->account_status_message, msg, sizeof(g->account_status_message) - 1);
@@ -250,241 +247,143 @@ void UpdateLobby(LobbyState *g, Vector2 mouse)
 // ============================================================================
 void DrawSettings(const LobbyState *g)
 {
-    DrawText("SETTINGS", (int)(CENTER_X - 200.0f), 80, 80, GOLD);
-    bool sel0 = (g->menu_selection == 0);
-    bool sel1 = (g->menu_selection == 1);
-    bool sel2 = (g->menu_selection == 2);
-    bool sel3 = (g->menu_selection == 3);
-    // Privacy Setting
-    DrawText("P2 Card Privacy:", (int)(CENTER_X - 300.0f), 200, 35, WHITE);
-    Rectangle cover_btn = {CENTER_X - 150, 250, 300, 70};
-    DrawRectangleRec(cover_btn, g->cover_p2_cards ? LIME : RED);
-    if (sel0)
-        DrawRectangleLinesEx(cover_btn, 4, WHITE);
-    DrawText(g->cover_p2_cards ? "COVERED" : "UNCOVERED", (int)(cover_btn.x + 60), (int)(cover_btn.y + 20), 28, BLACK);
-    // AI Speed Setting
-    DrawText("AI Move Speed:", (int)(CENTER_X - 300.0f), 350, 35, WHITE);
-    Rectangle speed_btn = {CENTER_X - 150, 400, 300, 70};
-    const char *speed_text = (fabsf(g->ai_move_delay - 0.5f) < 0.001f) ? "FAST" : (fabsf(g->ai_move_delay - 2.0f) < 0.001f) ? "MEDIUM"
-                                                                                                                            : "SLOW";
-    Color speed_col = (fabsf(g->ai_move_delay - 0.5f) < 0.001f) ? LIME : (fabsf(g->ai_move_delay - 2.0f) < 0.001f) ? ORANGE
-                                                                                                                   : RED;
-    DrawRectangleRec(speed_btn, speed_col);
-    if (sel1)
-        DrawRectangleLinesEx(speed_btn, 4, WHITE);
-    DrawText(speed_text, (int)(speed_btn.x + 80), (int)(speed_btn.y + 20), 30, BLACK);
-    // Music Toggle
-    DrawText("Background Music:", (int)(CENTER_X - 300.0f), 500, 35, WHITE);
-    Rectangle music_btn = {CENTER_X - 150, 550, 300, 70};
-    DrawRectangleRec(music_btn, g->music_enabled ? LIME : RED);
-    if (sel2)
-        DrawRectangleLinesEx(music_btn, 4, WHITE);
-    DrawText(g->music_enabled ? "ON" : "OFF", (int)(music_btn.x + 100), (int)(music_btn.y + 20), 35, BLACK);
-    // Window Scale
-    DrawText("Window Scale:", (int)(CENTER_X - 300.0f), 650, 35, WHITE);
-    Rectangle scale_btn = {CENTER_X - 150, 700, 300, 70};
-    const char *scale_text[] = {"100%", "125%", "150%", "75%"};
-    DrawRectangleRec(scale_btn, SKYBLUE);
-    if (sel3)
-        DrawRectangleLinesEx(scale_btn, 4, WHITE);
-    DrawText(scale_text[g->window_scale], (int)(scale_btn.x + 90), (int)(scale_btn.y + 20), 35, BLACK);
-    if (g->is_fullscreen)
-        DrawText("(Disabled in Fullscreen)", (int)(CENTER_X - 120), 780, 20, GRAY);
-    // Debug button (only visible if you want, or always for dev)
-    Rectangle debug_rect = {CENTER_X - 200.0f, 600.0f, 400.0f, 80.0f};
     Vector2 mouse = GetMousePosition();
+    DrawText("SETTINGS", (int)(CENTER_X - 200.0f), 100, 60, PURPLE);
+    // Music toggle
+    Rectangle music_rect = {CENTER_X - 150.0f, 200.0f, 300.0f, 60.0f};
+    bool music_hovered = CheckCollisionPointRec(mouse, music_rect);
+    bool music_selected = (g->menu_selection == 0);
+    DrawRectangleRec(music_rect, music_selected || music_hovered ? LIME : GREEN);
+    DrawText(g->music_enabled ? "Music: ON" : "Music: OFF", (int)music_rect.x + 20, (int)music_rect.y + 15, 30, BLACK);
+    // Cover P2 cards
+    Rectangle cover_rect = {CENTER_X - 150.0f, 280.0f, 300.0f, 60.0f};
+    bool cover_hovered = CheckCollisionPointRec(mouse, cover_rect);
+    bool cover_selected = (g->menu_selection == 1);
+    DrawRectangleRec(cover_rect, cover_selected || cover_hovered ? LIME : GREEN);
+    DrawText(g->cover_p2_cards ? "Cover P2 Cards: ON" : "Cover P2 Cards: OFF", (int)cover_rect.x + 20, (int)cover_rect.y + 15, 30, BLACK);
+    // AI Delay (example slider)
+    Rectangle delay_rect = {CENTER_X - 150.0f, 360.0f, 300.0f, 60.0f};
+    bool delay_hovered = CheckCollisionPointRec(mouse, delay_rect);
+    bool delay_selected = (g->menu_selection == 2);
+    DrawRectangleRec(delay_rect, delay_selected || delay_hovered ? LIME : GREEN);
+    const char *delay_names[] = {"Fast (0.5s)", "Normal (1.0s)", "Slow (2.0s)"};
+    DrawText(TextFormat("AI Think Delay: %s", delay_names[g->ai_delay_mode]),
+             (int)delay_rect.x + 20, (int)delay_rect.y + 15, 30, BLACK);
+    // Window Scale
+    Rectangle scale_rect = {CENTER_X - 150.0f, 440.0f, 300.0f, 60.0f};
+    bool scale_hovered = CheckCollisionPointRec(mouse, scale_rect);
+    bool scale_selected = (g->menu_selection == 3);
+    DrawRectangleRec(scale_rect, scale_selected || scale_hovered ? LIME : GREEN);
+    const char *scales[] = {"100%", "125%", "150%", "75%"};
+    DrawText(TextFormat("Window Scale: %s", scales[g->window_scale]), (int)scale_rect.x + 20, (int)scale_rect.y + 15, 30, BLACK);
+    // Fullscreen toggle
+    Rectangle fs_rect = {CENTER_X - 150.0f, 520.0f, 300.0f, 60.0f};
+    bool fs_hovered = CheckCollisionPointRec(mouse, fs_rect);
+    bool fs_selected = (g->menu_selection == 4);
+    DrawRectangleRec(fs_rect, fs_selected || fs_hovered ? LIME : GREEN);
+    DrawText(g->is_fullscreen ? "Fullscreen: ON" : "Fullscreen: OFF", (int)fs_rect.x + 20, (int)fs_rect.y + 15, 30, BLACK);
+    // Debug button
+    Rectangle debug_rect = {CENTER_X - 150.0f, 600.0f, 300.0f, 60.0f};
     bool debug_hovered = CheckCollisionPointRec(mouse, debug_rect);
-
-    Color debug_bg = debug_hovered ? RED : MAROON;
-    DrawRectangleRec(debug_rect, debug_bg);
-    DrawRectangleLinesEx(debug_rect, 4.0f, debug_hovered ? ORANGE : DARKGRAY);
-    DrawText("DEBUG: Force Achievement Check", (int)(debug_rect.x + 20), (int)(debug_rect.y + 25), 30, WHITE);
-    DrawText("BACK (B)", (int)(CENTER_X - 70), (int)SCREEN_H - 100, 35, WHITE);
+    bool debug_selected = (g->menu_selection == 5);
+    DrawRectangleRec(debug_rect, debug_selected || debug_hovered ? RED : MAROON);
+    DrawText("DEBUG: Check Achievements", (int)debug_rect.x + 20, (int)debug_rect.y + 15, 30, WHITE);
+    // Back button
+    Rectangle back_rect = {CENTER_X - 150.0f, SCREEN_H - 120.0f, 300.0f, 60.0f};
+    bool back_hovered = CheckCollisionPointRec(mouse, back_rect);
+    bool back_selected = (g->menu_selection == 6);
+    DrawRectangleRec(back_rect, back_selected || back_hovered ? LIGHTGRAY : GRAY);
+    DrawText("Back", (int)back_rect.x + 110, (int)back_rect.y + 15, 30, BLACK);
 }
 void UpdateSettings(LobbyState *g, Vector2 mouse)
 {
-    Rectangle cover_btn = {CENTER_X - 150, 250, 300, 70};
-    Rectangle speed_btn = {CENTER_X - 150, 400, 300, 70};
-    Rectangle music_btn = {CENTER_X - 150, 550, 300, 70};
-    Rectangle scale_btn = {CENTER_X - 150, 700, 300, 70};
-    Rectangle debug_rect = {CENTER_X - 150, 800, 300, 70};
-
     int gamepad = GetActiveGamepad();
-    // === KEYBOARD INPUT ===
-    if (IsKeyPressed(KEY_UP))
+    // Navigation (7 items: 0-5 settings + debug, 6 back)
+    if (IsKeyPressed(KEY_UP) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 11)))
     {
+        g->menu_selection = (g->menu_selection - 1 + 7) % 7;
         PlaySound(g_menu_navigate_sound);
-        g->menu_selection--;
-        if (g->menu_selection < 0)
-            g->menu_selection = 4;
     }
-    if (IsKeyPressed(KEY_DOWN))
+    if (IsKeyPressed(KEY_DOWN) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 12)))
     {
+        g->menu_selection = (g->menu_selection + 1) % 7;
         PlaySound(g_menu_navigate_sound);
-        g->menu_selection++;
-        if (g->menu_selection > 4)
-            g->menu_selection = 0;
     }
-    if (IsKeyPressed(KEY_ENTER))
+    bool trigger = false;
+    if (IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 0)))
+    {
+        trigger = true;
+    }
+    // Handle selections
+    if (trigger)
     {
         PlaySound(g_menu_confirm_sound);
-        if (g->menu_selection == 0)
+        switch (g->menu_selection)
         {
-            g->cover_p2_cards = !g->cover_p2_cards;
-        }
-        else if (g->menu_selection == 1)
-        {
-            if (fabsf(g->ai_move_delay - 0.5f) < EPSILON)
-                g->ai_move_delay = 2.0f;
-            else if (fabsf(g->ai_move_delay - 2.0f) < EPSILON)
-                g->ai_move_delay = 3.0f;
-            else
-                g->ai_move_delay = 0.5f;
-        }
-        else if (g->menu_selection == 2)
-        {
+        case 0: // Music
             g->music_enabled = !g->music_enabled;
             if (g->music_enabled)
-            {
                 PlayMusicStream(g_background_music);
-            }
             else
-            {
                 StopMusicStream(g_background_music);
-            }
-        }
-        else if (g->menu_selection == 3 && !g->is_fullscreen)
-        {
+            SaveSettings(g);
+            break;
+        case 1: // Cover P2
+            g->cover_p2_cards = !g->cover_p2_cards;
+            SaveSettings(g);
+            break;
+        case 2:                                                           // AI Delay
+            g->ai_delay_mode = (AIDelayMode)((g->ai_delay_mode + 1) % 3); // Cycle through 0-2
+            SaveSettings(g);
+            break;
+        case 3: // Window Scale (cycle enums)
             g->window_scale = (WindowScale)((g->window_scale + 1) % 4);
             ApplyWindowScale(g);
-        }
-        else if (g->menu_selection == 4)
+            SaveSettings(g);
+            break;
+        case 4: // Fullscreen
+            ToggleAppFullscreen(g);
+            SaveSettings(g);
+            break;
+        case 5: // Debug Check Achievements
         {
-    PlaySound(g_menu_confirm_sound);
+            int human_count = 0;
+            for (int i = 0; i < g->account_count && human_count < 2; i++)
+            {
+                if (!g->accounts[i].is_ai)
+                {
+                    CheckAchievements(&g->accounts[i], g);
+                    human_count++;
+                }
+            }
             SaveAchievements(g);
-            SwitchState(g, STATE_MAIN_MENU);
+            ShowAccountStatus(g, "Achievements Checked!");
+            break;
         }
-        
+            SaveAchievements(g);
+            ShowAccountStatus(g, "Achievements Checked!");
+            break;
+        case 6: // Back
+            SwitchState(g, STATE_MAIN_MENU);
+            break;
+        default:
+            break;
+        }
     }
-    if (IsKeyPressed(KEY_B))
+    // Mouse clicks (for each rect, similar to selection)
+    Rectangle music_rect = {CENTER_X - 150.0f, 200.0f, 300.0f, 60.0f};
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, music_rect))
+    {
+        g->music_enabled = !g->music_enabled;
+        // ... same as case 0
+    }
+    // Repeat for other rects, including debug and back
+    // ESC / B for back
+    if (IsKeyPressed(KEY_ESCAPE) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 1)))
     {
         SwitchState(g, STATE_MAIN_MENU);
-        SaveSettings(g);
     }
-    // === GAMEPAD INPUT ===
-    if (gamepad >= 0)
-    {
-        if (IsGamepadButtonPressedSDL(gamepad, 11))
-        {
-            PlaySound(g_menu_navigate_sound);
-            g->menu_selection--;
-            if (g->menu_selection < 0)
-                g->menu_selection = 3;
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 12))
-        {
-            PlaySound(g_menu_navigate_sound);
-            g->menu_selection++;
-            if (g->menu_selection > 3)
-                g->menu_selection = 0;
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 0))
-        {
-            PlaySound(g_menu_confirm_sound);
-            if (g->menu_selection == 0)
-            {
-                g->cover_p2_cards = !g->cover_p2_cards;
-            }
-            else if (g->menu_selection == 1)
-            {
-                if (fabsf(g->ai_move_delay - 0.5f) < EPSILON)
-                    g->ai_move_delay = 2.0f;
-                else if (fabsf(g->ai_move_delay - 2.0f) < EPSILON)
-                    g->ai_move_delay = 3.0f;
-                else
-                    g->ai_move_delay = 0.5f;
-            }
-            else if (g->menu_selection == 2)
-            {
-                g->music_enabled = !g->music_enabled;
-                if (g->music_enabled)
-                {
-                    PlayMusicStream(g_background_music);
-                }
-                else
-                {
-                    StopMusicStream(g_background_music);
-                }
-            }
-            else if (g->menu_selection == 3 && !g->is_fullscreen)
-            {
-                g->window_scale = (WindowScale)((g->window_scale + 1) % 4);
-                ApplyWindowScale(g);
-            }
-               else if (g->menu_selection == 4)
-            {
-                PlaySound(g_menu_confirm_sound);
-            SaveAchievements(g);
-            SwitchState(g, STATE_MAIN_MENU);
-            }
-        }
-        if (IsKeyPressed(KEY_B) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 1)))
-        { // ESC or B
-            SwitchState(g, STATE_MAIN_MENU);
-            SaveSettings(g);
-        }
-    }
-    // === MOUSE INPUT ===
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-    {
-        if (CheckCollisionPointRec(mouse, cover_btn))
-        {
-            PlaySound(g_menu_confirm_sound);
-            g->cover_p2_cards = !g->cover_p2_cards;
-        }
-        else if (CheckCollisionPointRec(mouse, speed_btn))
-        {
-            PlaySound(g_menu_confirm_sound);
-            if (fabsf(g->ai_move_delay - 0.5f) < EPSILON)
-                g->ai_move_delay = 2.0f;
-            else if (fabsf(g->ai_move_delay - 2.0f) < EPSILON)
-                g->ai_move_delay = 3.0f;
-            else
-                g->ai_move_delay = 0.5f;
-        }
-        else if (CheckCollisionPointRec(mouse, music_btn))
-        {
-            PlaySound(g_menu_confirm_sound);
-            g->music_enabled = !g->music_enabled;
-            if (g->music_enabled)
-            {
-                PlayMusicStream(g_background_music);
-            }
-            else
-            {
-                StopMusicStream(g_background_music);
-            }
-        }
-        else if (CheckCollisionPointRec(mouse, scale_btn) && !g->is_fullscreen)
-        {
-            PlaySound(g_menu_confirm_sound);
-            g->window_scale = (WindowScale)((g->window_scale + 1) % 4);
-            ApplyWindowScale(g);
-        }
-        else if (CheckCollisionPointRec(mouse, debug_rect))
-        {
-            PlaySound(g_menu_confirm_sound);
-            SaveAchievements(g);
-            SwitchState(g, STATE_MAIN_MENU);
-        }
-        else if (mouse.y > SCREEN_H - 150)
-        {
-            SwitchState(g, STATE_MAIN_MENU);
-            SaveSettings(g);
-        }
-    }
-}
-// ============================================================================
+} // ============================================================================
 // ACCOUNTS MANAGER
 // ============================================================================
 void DrawAccountsManager(const LobbyState *g)
@@ -492,7 +391,7 @@ void DrawAccountsManager(const LobbyState *g)
     ClearBackground(BLACK);
     DrawText("ACCOUNT MANAGER", (int)(CENTER_X - 300.0f), 50, 60, GOLD);
     float start_y = 150.0f;
-    float card_h = 100.0f;
+    float card_h = 120.0f; // Increased height for insurance button
     float spacing = 10.0f;
     for (int i = 0; i < g->account_count; i++)
     {
@@ -503,89 +402,107 @@ void DrawAccountsManager(const LobbyState *g)
             base_color = MAROON;
         DrawRectangleRec(card, base_color);
         DrawRectangleLinesEx(card, selected ? 4.0f : 2.0f, (selected || g->accounts[i].is_logged_in) ? LIME : GRAY);
+        // Name and status
         DrawText(TextFormat("%s %s", g->accounts[i].first_name, g->accounts[i].last_name),
                  (int)card.x + 20, (int)card.y + 20, 30, WHITE);
         if (g->p1_account_index == i)
-            DrawText("P1 ACTIVE", (int)card.x + 700, (int)card.y + 35, 25, LIME);
-        else if (g->p2_account_index == i)
-            DrawText("P2 ACTIVE", (int)card.x + 700, (int)card.y + 35, 25, SKYBLUE);
-        DrawText(TextFormat("Credits: $%.2f", g->accounts[i].credits), (int)card.x + 20, (int)card.y + 60, 20, LIGHTGRAY);
-        DrawText(TextFormat("Tokens: $%.2f Member Status: %s",
+            DrawText("P1 ACTIVE", (int)card.x + 700, (int)card.y + 25, 25, LIME);
+        // Credits and tokens
+        Color credit_color = g->accounts[i].credits < 0 ? RED : LIGHTGRAY;
+        DrawText(TextFormat("Credits: $%.2f", g->accounts[i].credits),
+                 (int)card.x + 20, (int)card.y + 60, 20, credit_color);
+        DrawText(TextFormat("Tokens: %.0f | Status: %s",
                             g->accounts[i].tokens,
                             GetMemberStatusString(g->accounts[i].member_status)),
-                 (int)card.x + 20, (int)card.y + 80, 20, LIGHTGRAY);
+                 (int)card.x + 20, (int)card.y + 85, 20, LIGHTGRAY);
+        // Insurance indicator or button
+        if (!g->accounts[i].is_ai)
+        {
+            if (g->accounts[i].has_insurance)
+            {
+                // Show insurance status and button if in trouble
+                if (g->accounts[i].credits <= 0)
+                {
+                    Rectangle ins_btn = {card.x + 650, card.y + 55, 220, 50};
+                    bool btn_hover = CheckCollisionPointRec(GetMousePosition(), ins_btn);
+                    DrawRectangleRec(ins_btn, btn_hover ? GREEN : DARKGREEN);
+                    DrawRectangleLinesEx(ins_btn, 3, LIME);
+                    DrawText("USE INSURANCE", (int)ins_btn.x + 20, (int)ins_btn.y + 15, 20, WHITE);
+                }
+                else
+                {
+                    DrawText("[INSURED]", (int)card.x + 720, (int)card.y + 25, 22, GREEN);
+                }
+            }
+        }
         if (g->accounts[i].is_ai)
-            DrawText("AI BOT", (int)card.x + 300, (int)card.y + 40, 20, GOLD);
+            DrawText("AI BOT", (int)card.x + 720, (int)card.y + 25, 20, GOLD);
     }
+    // Status message
     if (GetTime() < g->account_status_timer + 3.0)
     {
         int text_w = MeasureText(g->account_status_message, 25);
         DrawText(g->account_status_message, (int)(CENTER_X - (float)text_w / 2.0f), (int)(SCREEN_H - 120), 25, YELLOW);
     }
-    DrawText("A = Login | B = Menu", (int)(CENTER_X - 250.0f), (int)SCREEN_H - 60, 20, GRAY);
+    DrawText("A = Login/Select | B = Menu | Click Insurance to Use", (int)(CENTER_X - 320.0f), (int)SCREEN_H - 60, 20, GRAY);
 }
 void UpdateAccountsManager(LobbyState *g, Vector2 mouse)
 {
     float start_y = 150.0f;
-    float card_h = 100.0f;
+    float card_h = 120.0f;
     float spacing = 10.0f;
     int gamepad = GetActiveGamepad();
     bool trigger_action = false;
-    // === KEYBOARD INPUT ===
-    if (IsKeyPressed(KEY_UP))
+    // Navigation
+    if (IsKeyPressed(KEY_UP) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 11)))
     {
         PlaySound(g_menu_navigate_sound);
         g->menu_selection--;
         if (g->menu_selection < 0)
             g->menu_selection = g->account_count - 1;
     }
-    if (IsKeyPressed(KEY_DOWN))
+    if (IsKeyPressed(KEY_DOWN) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 12)))
     {
         PlaySound(g_menu_navigate_sound);
         g->menu_selection++;
         if (g->menu_selection >= g->account_count)
             g->menu_selection = 0;
     }
-    if (IsKeyPressed(KEY_ENTER))
+    // Select action
+    if (IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 0)))
     {
         trigger_action = true;
     }
-    if (IsKeyPressed(KEY_B))
+    // Back
+    if (IsKeyPressed(KEY_B) || IsKeyPressed(KEY_ESCAPE) ||
+        (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 1)))
     {
         SwitchState(g, STATE_MAIN_MENU);
+        return;
     }
-    // === GAMEPAD INPUT ===
-    if (gamepad >= 0)
-    {
-        if (IsGamepadButtonPressedSDL(gamepad, 11))
-        {
-            PlaySound(g_menu_navigate_sound);
-            g->menu_selection--;
-            if (g->menu_selection < 0)
-                g->menu_selection = g->account_count - 1;
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 12))
-        {
-            PlaySound(g_menu_navigate_sound);
-            g->menu_selection++;
-            if (g->menu_selection >= g->account_count)
-                g->menu_selection = 0;
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 0))
-        {
-            trigger_action = true;
-        }
-        if (IsKeyPressed(KEY_B) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 1)))
-        { // ESC or B
-            SwitchState(g, STATE_MAIN_MENU);
-        }
-    }
-    // === MOUSE INPUT ===
+    // Mouse input
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
         for (int i = 0; i < g->account_count; i++)
         {
             Rectangle card = {CENTER_X - 450.0f, start_y + (float)i * (card_h + spacing), 900.0f, card_h};
+            // Check insurance button
+            if (!g->accounts[i].is_ai && g->accounts[i].has_insurance && g->accounts[i].credits <= 0)
+            {
+                Rectangle ins_btn = {card.x + 650, card.y + 55, 220, 50};
+                if (CheckCollisionPointRec(mouse, ins_btn))
+                {
+                    // Apply insurance immediately
+                    g->accounts[i].credits = 10000.0;
+                    g->accounts[i].tokens = 10.0;
+                    g->accounts[i].has_insurance = false;
+                    ShowAccountStatus(g, "Insurance Applied! Credits restored to $10,000");
+                    PlaySound(g_coin_sound);
+                    SaveAllAccounts(g);
+                    return;
+                }
+            }
+            // Check card click
             if (CheckCollisionPointRec(mouse, card))
             {
                 g->menu_selection = i;
@@ -594,9 +511,12 @@ void UpdateAccountsManager(LobbyState *g, Vector2 mouse)
             }
         }
         if (mouse.y > SCREEN_H - 100)
+        {
             SwitchState(g, STATE_MAIN_MENU);
+            return;
+        }
     }
-    // === LOGIN/LOGOUT LOGIC ===
+    // Login/logout logic
     if (trigger_action)
     {
         PlaySound(g_menu_confirm_sound);
@@ -610,7 +530,7 @@ void UpdateAccountsManager(LobbyState *g, Vector2 mouse)
         {
             if (g->accounts[i].is_ai)
             {
-                ShowAccountStatus(g, TextFormat("Dealer Name: %s", g->accounts[i].first_name));
+                ShowAccountStatus(g, TextFormat("Dealer: %s", g->accounts[i].first_name));
             }
             else
             {
@@ -625,121 +545,245 @@ void UpdateAccountsManager(LobbyState *g, Vector2 mouse)
     }
 }
 // ============================================================================
-// SHOP
+// SHOP - Replace your existing DrawShop and UpdateShop with these
 // ============================================================================
 void DrawShop(const LobbyState *g)
 {
-    DrawText("TOKEN SHOP", (int)(CENTER_X - 250.0f), 100, 80, GOLD);
+    ClearBackground(BLACK);
+    DrawText("TOKEN SHOP", (int)(CENTER_X - 250.0f), 60, 80, GOLD);
+    // Player info at top
     const char *p1 = (g->p1_account_index == -1) ? "Not Logged In" : GetPlayerName(g, 1);
-    DrawText("Player 1 Active Account:", 150, 220, 35, LIME);
-    DrawText(p1, 500, 220, 35, WHITE);
+    DrawText("Active Account:", 150, 160, 30, LIME);
+    DrawText(p1, 420, 160, 30, WHITE);
     if (g->p1_account_index >= 0)
     {
-        DrawText(TextFormat("Credits: $%.2f", g->accounts[g->p1_account_index].credits), 150, 270, 30, LIME);
-        DrawText(TextFormat("Tokens: %.1f", g->accounts[g->p1_account_index].tokens), 150, 310, 30, GOLD);
+        DrawText(TextFormat("Credits: $%.2f", g->accounts[g->p1_account_index].credits),
+                 150, 200, 28, LIME);
+        DrawText(TextFormat("Tokens: %.0f", g->accounts[g->p1_account_index].tokens),
+                 550, 200, 28, GOLD);
+        // Insurance status
+        if (g->accounts[g->p1_account_index].has_insurance)
+        {
+            DrawText("[INSURED]", 850, 200, 28, GREEN);
+        }
     }
-    DrawText("AVAILABLE PURCHASES :", (int)(CENTER_X - 200), 380, 40, SKYBLUE);
-    Rectangle p1_buy_rect = {CENTER_X - 200, 500, 400, 150};
-    bool selected = (g->menu_selection == 0);
-    DrawRectangleRec(p1_buy_rect, selected ? LIME : DARKGREEN);
-    if (selected)
-        DrawRectangleLinesEx(p1_buy_rect, 4, WHITE);
-    DrawText("BUY TOKENS", (int)(p1_buy_rect.x + 110), (int)(p1_buy_rect.y + 30), 30, BLACK);
-    DrawText(TextFormat("Cost: $%.2f", TOKEN_PRICE), (int)(p1_buy_rect.x + 120), (int)(p1_buy_rect.y + 75), 25, YELLOW);
-    DrawText("BACK (B)", (int)(CENTER_X - 50), (int)SCREEN_H - 120, 30, WHITE);
+    // Section divider
+    DrawRectangle(100, 250, (int)SCREEN_W - 200, 3, GOLD);
+    // Token Packages
+    DrawText("TOKEN PACKAGES", (int)(CENTER_X - 200), 280, 40, SKYBLUE);
+    Rectangle token_rects[3];
+    float start_x = CENTER_X - 550;
+    float card_width = 340;
+    float card_height = 180;
+    float gap = 30;
+    for (int i = 0; i < 3; i++)
+    {
+        token_rects[i] = (Rectangle){
+            start_x + (float)i * (card_width + gap),
+            350,
+            card_width,
+            card_height};
+    }
+    const char *token_labels[] = {"1 TOKEN", "5 TOKENS", "10 TOKENS"};
+    const char *token_prices[] = {"$1,000", "$4,000", "$7,000"};
+    const char *token_savings[] = {"", "Save $1,000!", "Save $3,000!"};
+    Color token_colors[] = {DARKGREEN, DARKBLUE, PURPLE};
+    Vector2 mouse = GetMousePosition();
+    for (int i = 0; i < 3; i++)
+    {
+        bool selected = (g->menu_selection == i);
+        bool hovered = CheckCollisionPointRec(mouse, token_rects[i]);
+        DrawRectangleRec(token_rects[i], token_colors[i]);
+        if (selected || hovered)
+            DrawRectangleLinesEx(token_rects[i], 5, LIME);
+        else
+            DrawRectangleLinesEx(token_rects[i], 3, GOLD);
+        DrawText(token_labels[i],
+                 (int)(token_rects[i].x + 90),
+                 (int)(token_rects[i].y + 30),
+                 32, GOLD);
+        DrawText(token_prices[i],
+                 (int)(token_rects[i].x + 110),
+                 (int)(token_rects[i].y + 80),
+                 28, WHITE);
+        if (strlen(token_savings[i]) > 0)
+        {
+            DrawText(token_savings[i],
+                     (int)(token_rects[i].x + 80),
+                     (int)(token_rects[i].y + 130),
+                     22, YELLOW);
+        }
+    }
+    // Insurance section
+    DrawText("PROTECTION", (int)(CENTER_X - 140), 580, 40, ORANGE);
+    Rectangle insurance_rect = {CENTER_X - 400, 650, 800, 180};
+    bool ins_selected = (g->menu_selection == 3);
+    bool ins_hovered = CheckCollisionPointRec(mouse, insurance_rect);
+    bool has_insurance = (g->p1_account_index >= 0 && g->accounts[g->p1_account_index].has_insurance);
+    DrawRectangleRec(insurance_rect, has_insurance ? DARKGRAY : MAROON);
+    if (ins_selected || ins_hovered)
+        DrawRectangleLinesEx(insurance_rect, 5, LIME);
+    else
+        DrawRectangleLinesEx(insurance_rect, 3, GOLD);
+    DrawText("BANKRUPTCY INSURANCE", (int)(insurance_rect.x + 200), (int)(insurance_rect.y + 30), 32, YELLOW);
+    DrawText("$50,000", (int)(insurance_rect.x + 330), (int)(insurance_rect.y + 75), 28, WHITE);
+    if (has_insurance)
+    {
+        DrawText("[ACTIVE] - One-Time Use", (int)(insurance_rect.x + 240), (int)(insurance_rect.y + 120), 24, GREEN);
+    }
+    else
+    {
+        DrawText("Protects from total reset at -$25,000", (int)(insurance_rect.x + 180), (int)(insurance_rect.y + 120), 22, LIGHTGRAY);
+    }
+    // Status message
+    if (GetTime() < g->account_status_timer + 3.0)
+    {
+        int text_w = MeasureText(g->account_status_message, 28);
+        DrawText(g->account_status_message, (int)(CENTER_X - (float)text_w / 2.0f), (int)(SCREEN_H - 120), 28, YELLOW);
+    }
+    // Controls
+    DrawText("A/Enter = Purchase | B/Esc = Back", (int)(CENTER_X - 250), (int)SCREEN_H - 60, 24, GRAY);
 }
 void UpdateShop(LobbyState *g, Vector2 mouse)
 {
-    Rectangle p1_buy_rect = {CENTER_X - 200, 500, 400, 150};
     int gamepad = GetActiveGamepad();
-    bool trigger = false;
-    bool buy_pressed = false;
-    // === KEYBOARD INPUT ===
-    // Navigation
-    if (IsKeyPressed(KEY_LEFT) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 11)))
+    // Navigation (4 items: 3 token packages + 1 insurance)
+    if (IsKeyPressed(KEY_LEFT) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 13)))
     {
-        g->menu_selection--;
-        if (g->menu_selection < 0)
-            g->menu_selection = 3; // 4 items total (3 buy + 1 sell)
+        PlaySound(g_menu_navigate_sound);
+        g->menu_selection = (g->menu_selection - 1 + 4) % 4;
     }
-    if (IsKeyPressed(KEY_RIGHT) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 12)))
+    if (IsKeyPressed(KEY_RIGHT) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 14)))
     {
-        g->menu_selection++;
-        if (g->menu_selection > 3)
-            g->menu_selection = 0;
+        PlaySound(g_menu_navigate_sound);
+        g->menu_selection = (g->menu_selection + 1) % 4;
     }
-    // Back with B button
-    if (IsKeyPressed(KEY_B) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 1)))
+    if (IsKeyPressed(KEY_UP) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 11)))
+    {
+        PlaySound(g_menu_navigate_sound);
+        g->menu_selection = (g->menu_selection < 3) ? 3 : (g->menu_selection - 1);
+    }
+    if (IsKeyPressed(KEY_DOWN) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 12)))
+    {
+        PlaySound(g_menu_navigate_sound);
+        g->menu_selection = (g->menu_selection == 3) ? 0 : 3;
+    }
+    // Back
+    if (IsKeyPressed(KEY_B) || IsKeyPressed(KEY_ESCAPE) ||
+        (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 1)))
     {
         SwitchState(g, STATE_MAIN_MENU);
+        return;
     }
-    if (IsKeyPressed(KEY_ENTER))
+    // Purchase trigger
+    bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 0));
+    // Mouse selection
+    Rectangle token_rects[3];
+    float start_x = CENTER_X - 550;
+    float card_width = 340;
+    float card_height = 180;
+    float gap = 30;
+    for (int i = 0; i < 3; i++)
     {
+        token_rects[i] = (Rectangle){start_x + (float)i * (card_width + gap), 350, card_width, card_height};
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, token_rects[i]))
+        {
+            g->menu_selection = i;
+            trigger = true;
+        }
+    }
+    Rectangle insurance_rect = {CENTER_X - 400, 650, 800, 180};
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, insurance_rect))
+    {
+        g->menu_selection = 3;
         trigger = true;
     }
-    if (IsKeyPressed(KEY_B))
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && mouse.y > SCREEN_H - 100)
     {
         SwitchState(g, STATE_MAIN_MENU);
+        return;
     }
-    // === GAMEPAD INPUT ===
-    if (gamepad >= 0)
+    // Handle purchases
+    if (trigger)
     {
-        if (IsGamepadButtonPressedSDL(gamepad, 2))
-        { // X button
-            buy_pressed = true;
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 1))
-        {
-            SwitchState(g, STATE_MAIN_MENU);
-        }
-    }
-    if (buy_pressed || trigger)
-    {
-        // Check conditions
         if (g->p1_account_index < 0)
         {
-            ShowAccountStatus(g, "Log in first!");
+            ShowAccountStatus(g, "Please log in first!");
             PlaySound(g_place_sound);
+            return;
         }
-        else
+        Account *acc = &g->accounts[g->p1_account_index];
+        switch (g->menu_selection)
         {
-            int idx = g->p1_account_index;
-            Account *acc = &g->accounts[idx];
-            if (acc->credits < TOKEN_PRICE)
+        case 0: // 1 token
+            if (acc->credits >= 1000.0)
+            {
+                acc->credits -= 1000.0;
+                acc->tokens += 1.0;
+                ShowAccountStatus(g, "Purchased 1 Token!");
+                PlaySound(g_coin_sound);
+                SaveAllAccounts(g);
+            }
+            else
             {
                 ShowAccountStatus(g, "Insufficient Credits!");
                 PlaySound(g_place_sound);
             }
+            break;
+        case 1: // 5 tokens
+            if (acc->credits >= 4000.0)
+            {
+                acc->credits -= 4000.0;
+                acc->tokens += 5.0;
+                ShowAccountStatus(g, "Purchased 5 Tokens! (Saved $1,000)");
+                PlaySound(g_coin_sound);
+                SaveAllAccounts(g);
+            }
             else
             {
-                // Success
-                acc->credits -= TOKEN_PRICE;
-                ShowAccountStatus(g, "Purchase successful!");
-                PlaySound(g_coin_sound);
-                g->accounts[g->p1_account_index].tokens += 1.0;
-                UpdateAccountCredits(g);
+                ShowAccountStatus(g, "Insufficient Credits!");
+                PlaySound(g_place_sound);
             }
+            break;
+        case 2: // 10 tokens
+            if (acc->credits >= 7000.0)
+            {
+                acc->credits -= 7000.0;
+                acc->tokens += 10.0;
+                ShowAccountStatus(g, "Purchased 10 Tokens! (Saved $3,000)");
+                PlaySound(g_coin_sound);
+                SaveAllAccounts(g);
+            }
+            else
+            {
+                ShowAccountStatus(g, "Insufficient Credits!");
+                PlaySound(g_place_sound);
+            }
+            break;
+        case 3: // Insurance
+            if (acc->has_insurance)
+            {
+                ShowAccountStatus(g, "You already have insurance!");
+                PlaySound(g_place_sound);
+            }
+            else if (acc->credits >= 50000.0)
+            {
+                acc->credits -= 50000.0;
+                acc->has_insurance = true;
+                ShowAccountStatus(g, "Insurance Purchased! You're protected.");
+                PlaySound(g_coin_sound);
+                SaveAllAccounts(g);
+            }
+            else
+            {
+                ShowAccountStatus(g, "Insufficient Credits! Need $50,000");
+                PlaySound(g_place_sound);
+            }
+            break;
+        default:
+            break;
         }
-    }
-    // === MOUSE INPUT ===
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-    {
-        if (CheckCollisionPointRec(mouse, p1_buy_rect))
-            trigger = true;
-        if (mouse.y > SCREEN_H - 150)
-            SwitchState(g, STATE_MAIN_MENU);
-    }
-    // === PURCHASE LOGIC ===
-    if (trigger && g->p1_account_index >= 0)
-    {
-        PlaySound(g_menu_confirm_sound);
-        bool is_ai = g->accounts[g->p1_account_index].is_ai;
-        if (!is_ai && g->accounts[g->p1_account_index].credits >= TOKEN_PRICE)
-        {
-            g->accounts[g->p1_account_index].credits -= TOKEN_PRICE;
-            g->accounts[g->p1_account_index].tokens += 1.0;
-            SaveAllAccounts(g);
-        }
+        UpdateAccountCredits(g);
     }
 }
 // ============================================================================

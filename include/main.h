@@ -32,6 +32,9 @@ extern float CENTER_X;
 #define ACHIEVEMENT_DESC_LEN 64
 // Shop constants
 #define TOKEN_PRICE 1000.0
+#ifndef CLAMP
+#define CLAMP(val, min, max) ((val) < (min) ? (min) : ((val) > (max) ? (max) : (val)))
+#endif
 // Window scale options
 typedef enum
 {
@@ -47,6 +50,12 @@ typedef enum
     AI_THEA = 1,
     AI_FLINT = 2
 } AIType;
+typedef enum
+{
+    AI_DELAY_FAST = 0, // 0.5s
+    AI_DELAY_NORMAL,   // 1.0s
+    AI_DELAY_SLOW      // 2.0s
+} AIDelayMode;
 // Member status struct
 typedef enum
 {
@@ -95,9 +104,9 @@ typedef struct
     double total_winnings_cash; // Cumulative cash won
     double highest_single_win;  // Biggest win in one go
     // Game Specific
-    bool jg_matched_jokers;           // Set when both jokers matched in a game
-    int jg_fastest_win;               // Lowest round count to win (-1 if none)
-    bool jg_filled_all_five_ranks;    // True if player ever filled all 5 ranks
+    bool jg_matched_jokers;        // Set when both jokers matched in a game
+    int jg_fastest_win;            // Lowest round count to win (-1 if none)
+    bool jg_filled_all_five_ranks; // True if player ever filled all 5 ranks
     bool cs_had_flush;
     bool cs_had_four_kind;
     bool cs_had_full_house;
@@ -143,6 +152,7 @@ typedef struct
     bool is_active;
     bool is_logged_in;
     MEMBERSTATUS member_status;
+    bool has_insurance;
 } Account;
 // Leaderboard Entry
 typedef struct
@@ -178,7 +188,7 @@ typedef struct
     double account_status_timer;
     // Settings
     bool cover_p2_cards;
-    float ai_move_delay;
+    AIDelayMode ai_delay_mode;
     bool music_enabled;
     WindowScale window_scale;
     bool is_fullscreen;

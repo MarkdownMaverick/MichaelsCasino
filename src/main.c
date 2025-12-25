@@ -97,7 +97,7 @@ int main(void)
     game_state.p1_account_index = -1;
     game_state.p2_account_index = -1;
     game_state.cover_p2_cards = true;
-    game_state.ai_move_delay = 2.0f;
+    game_state.ai_delay_mode = AI_DELAY_NORMAL; // Default 1.0s
     game_state.music_enabled = true;
     game_state.window_scale = SCALE_100;
     game_state.is_fullscreen = false;
@@ -116,6 +116,7 @@ int main(void)
     LoadAllAccounts(&game_state);
     LoadLeaderboard(&game_state);
     SortLeaderboard(&game_state);
+    InitGlobalAchievementDefs();
     LoadAchievements(&game_state);
     LoadSettings(&game_state);
     printf("Michael's Casino Initialized\n");

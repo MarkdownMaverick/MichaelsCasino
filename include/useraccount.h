@@ -27,5 +27,6 @@ const char *GetMemberStatusString(MEMBERSTATUS status);
 void InitAchievements(Account *acc);
 void UpdateGameStats(Account *acc, GameType game, double win_amount);
 void CheckAchievements(Account *acc, const LobbyState *g);
+void InitGlobalAchievementDefs(void); 
 
 #endif // USERACCOUNT_H

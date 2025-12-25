@@ -139,28 +139,28 @@ void UpdateGameStats(Account *acc, GameType game, double win_amount)
         break;
     }
 }
-
 // Change the signature to accept LobbyState for access to AI accounts
 void CheckAchievements(Account *acc, const LobbyState *g)
 {
-    // Helper macro to unlock (only if not already unlocked)
-#define CHECK(idx, condition) \
+// Helper macro to unlock (only if not already unlocked)
+#define CHECK(idx, condition)                            \
     if (!acc->achievements[idx].unlocked && (condition)) \
         acc->achievements[idx].unlocked = true;
-
     // General Play
-    CHECK(0,  acc->stats.total_games_played >= 10);
-    CHECK(1,  acc->stats.total_games_played >= 100);
-    CHECK(2,  acc->stats.total_games_played >= 500);
-    CHECK(3,  acc->stats.total_wins >= 10);
-    CHECK(4,  acc->stats.total_wins >= 100);
-    CHECK(5,  acc->stats.total_wins >= 500);
-    CHECK(6,  acc->stats.total_wins >= 1000);
-
+    CHECK(0, acc->stats.total_games_played >= 10);
+    CHECK(1, acc->stats.total_games_played >= 100);
+    CHECK(2, acc->stats.total_games_played >= 500);
+    CHECK(3, acc->stats.total_wins >= 10);
+    CHECK(4, acc->stats.total_wins >= 100);
+    CHECK(5, acc->stats.total_wins >= 500);
+    CHECK(6, acc->stats.total_wins >= 1000);
     // Bankrupt AI opponents
-    if (g != NULL) {
-        for (int i = 0; i < g->account_count; i++) {
-            if (g->accounts[i].is_ai) {
+    if (g != NULL)
+    {
+        for (int i = 0; i < g->account_count; i++)
+        {
+            if (g->accounts[i].is_ai)
+            {
                 if (strcmp(g->accounts[i].first_name, "FLINT") == 0 && g->accounts[i].credits <= 0)
                     CHECK(7, true);
                 if (strcmp(g->accounts[i].first_name, "THEA") == 0 && g->accounts[i].credits <= 0)
@@ -170,76 +170,64 @@ void CheckAchievements(Account *acc, const LobbyState *g)
             }
         }
     }
-
     CHECK(10, acc->stats.total_losses >= 10);
     CHECK(11, acc->stats.total_losses >= 50);
     CHECK(12, acc->stats.total_losses >= 100);
-
     // Jokers Gambit specific
-    CHECK(13, acc->stats.jg_matched_jokers);                    // Set this flag when player matches both jokers
-    CHECK(14, acc->stats.jg_fastest_win > 0 && acc->stats.jg_fastest_win <= 20);  // Rounds to win
-
+    CHECK(13, acc->stats.jg_matched_jokers);                                     // Set this flag when player matches both jokers
+    CHECK(14, acc->stats.jg_fastest_win > 0 && acc->stats.jg_fastest_win <= 20); // Rounds to win
     // Big single-game payouts (any game)
     CHECK(15, acc->stats.highest_single_win >= 1000);
     CHECK(16, acc->stats.highest_single_win >= 5000);
     CHECK(17, acc->stats.highest_single_win >= 10000);
     CHECK(18, acc->stats.highest_single_win >= 50000);
     CHECK(19, acc->stats.highest_single_win >= 100000);
-
     // Tokens
     CHECK(20, acc->tokens >= 100);
     CHECK(21, acc->tokens >= 500);
     CHECK(22, acc->tokens >= 1000);
     CHECK(23, acc->tokens >= 10000);
     CHECK(24, acc->tokens >= 100000);
-
     // Credits
     CHECK(25, acc->credits >= 50000);
     CHECK(26, acc->credits >= 100000);
     CHECK(27, acc->credits >= 500000);
     CHECK(28, acc->credits >= 1000000);
     CHECK(29, acc->credits >= 10000000);
-
     // Blackjack wins
     CHECK(30, acc->stats.bj_wins >= 10);
     CHECK(31, acc->stats.bj_wins >= 50);
     CHECK(32, acc->stats.bj_wins >= 100);
     CHECK(33, acc->stats.bj_wins >= 500);
     CHECK(34, acc->stats.bj_wins >= 1000);
-
     // Best win streak (any game)
     CHECK(35, acc->stats.best_win_streak >= 3);
     CHECK(36, acc->stats.best_win_streak >= 5);
     CHECK(37, acc->stats.best_win_streak >= 10);
     CHECK(38, acc->stats.best_win_streak >= 15);
     CHECK(39, acc->stats.best_win_streak >= 20);
-
     // Card Slots (assuming you have a game state or recent hand result)
     CHECK(40, acc->stats.cs_had_flush);
     CHECK(41, acc->stats.cs_had_four_kind);
     CHECK(42, acc->stats.cs_had_full_house);
     CHECK(43, acc->stats.cs_had_straight_flush);
     CHECK(44, acc->stats.cs_had_royal_flush);
-
     // Slot spins
     CHECK(45, acc->stats.slots_spins >= 100);
     CHECK(46, acc->stats.slots_spins >= 1000);
     CHECK(47, acc->stats.slots_spins >= 5000);
-
     // Jokers Gambit: Fill all 5 ranks to win (secret achievement)
     CHECK(48, acc->stats.jg_filled_all_five_ranks);
-
     // Completionist: Unlock 25 or more achievements
     int unlocked_count = 0;
-    for (int i = 0; i < MAX_ACHIEVEMENTS - 1; i++) {  // Exclude self (49)
+    for (int i = 0; i < MAX_ACHIEVEMENTS - 1; i++)
+    { // Exclude self (49)
         if (acc->achievements[i].unlocked)
             unlocked_count++;
     }
     CHECK(49, unlocked_count >= 25);
-
 #undef CHECK
 }
-
 bool IsAlpha(int c)
 {
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
@@ -257,6 +245,102 @@ bool IsNameValid(const char *name)
     }
     return true;
 }
+
+void InitGlobalAchievementDefs(void)
+{
+    // Achievement names
+    const char *names[MAX_ACHIEVEMENTS] = {
+        "Novice Player",      // Play 10 Games
+        "Regular",            // Play 100 Games
+        "Veteran",            // Play 500 Games
+        "Beginner Luck",      // Win 10 Games
+        "Champion",           // Win 100 Games
+        "Master",             // Win 500 Games
+        "Grandmaster",        // Win 1000 Games
+        "Flint's Nemesis",    // Bankrupt Flint
+        "Thea's Downfall",    // Bankrupt Thea
+        "Bob's Ruin",         // Bankrupt Bob
+        "Ouch",               // Lose 10 Games
+        "Bad Day",            // Lose 50 Games
+        "Rough Patch",        // Lose 100 Games
+        "Joker Jackpot",      // Match Jokers
+        "Joker Pro",          // Win in Less Than 20 Rounds
+        "Quick Win",          // Win 1,000 in One Go
+        "Big Score",          // Win 5,000 in One Go
+        "Huge Payout",        // Win 10,000 in One Go
+        "Massive Win",        // Win 50,000 in One Go
+        "Jackpot Hunter",     // Win 100,000 in One Go
+        "Piggy Bank",         // Reach 100 Tokens
+        "Deep Pockets",       // Reach 500 Tokens
+        "High Roller",        // Reach 1,000 Tokens
+        "Millionaire",        // Reach 10,000 Tokens
+        "Elite",              // Reach 100k Tokens
+        "Spare Change",       // Reach 50k Credits
+        "Mega Rich",          // Reach 100k Credits
+        "Tycoon",             // Reach 500k Credits
+        "Credit King",        // Reach 1M Credits
+        "Credit Emperor",     // Reach 10M Credits
+        "BJ Rookie",          // Win 10 BJ Hands
+        "BJ Pro",             // Win 50 BJ Hands
+        "BJ Expert",          // Win 100 BJ Hands
+        "Card Counter",       // Win 500 BJ Hands
+        "21 Master",          // Win 1,000 BJ Hands
+        "Heating Up",         // Win 3 in a Row
+        "On Fire",            // Win 5 in a Row
+        "Unstoppable",        // Win 10 in a Row
+        "Godlike",            // Win 15 in a Row
+        "Invincible",         // Win 20 in a Row
+        "Flush Finder",       // Get a Flush
+        "Four of a Kind",     // Get a 4 of a Kind
+        "Full House Hero",    // Get a Full House
+        "Straight Flush Pro", // Get a Straight Flush
+        "Slot King",          // Get a Royal Flush
+        "Lucky Charm",        // Spin 100 Times
+        "High Variance",      // Spin 1,000 Times
+        "Slot Marathon",      // Spin 5,000 Times
+        "Its A Secret",       // Secret achievement
+        "Completionist"       // Unlock 49 Achievements
+    };
+    // Achievement descriptions
+    const char *descs[MAX_ACHIEVEMENTS] = {
+        "Play 10 Games", "Play 100 Games", "Play 500 Games", "Win 10 Games", "Win 100 Games",
+        "Win 500 Games", "Win 1000 Games", "Bankrupt Flint", "Bankrupt Thea", "Bankrupt Bob",
+        "Lose 10 Games", "Lose 50 Games", "Lose 100 Games", "Match Jokers", "Win in Less Than 20 Rounds",
+        "Win 1,000 in One Go", "Win 5,000 in One Go", "Win 10,000 in One Go", "Win 50,000 in One Go", "Win 100,000 in One Go",
+        "Reach 100 Tokens", "Reach 500 Tokens", "Reach 1,000 Tokens", "Reach 10,000 Tokens", "Reach 100,000 Tokens",
+        "Reach 50k Credits", "Reach 100k Credits", "Reach 500k Credits", "Reach 1M Credits", "Reach 10M Credits",
+        "Win 10 BJ Hands", "Win 50 BJ Hands", "Win 100 BJ Hands", "Win 500 BJ Hands", "Win 1,000 BJ Hands",
+        "Win 3 in a Row", "Win 5 in a Row", "Win 10 in a Row", "Win 15 in a Row", "Win 20 in a Row",
+        "Get a Flush", "Get a 4 of a Kind", "Get a Full House", "Get a Straight Flush", "Get a Royal Flush",
+        "Spin 100 Times", "Spin 1,000 Times", "Spin 5,000 Times",
+        "Fill All 5 Ranks in Joker's Gambit", "Unlock 25 Achievements"};
+    // Achievement targets (for reference/display)
+    int targets[MAX_ACHIEVEMENTS] = {
+        10, 100, 500, 10, 100, 500, 1000,         // Games played/won
+        1, 1, 1,                                  // Bankrupt AI (boolean)
+        10, 50, 100,                              // Losses
+        1, 20,                                    // Joker specific
+        1000, 5000, 10000, 50000, 100000,         // Single win amounts
+        100, 500, 1000, 10000, 100000,            // Token milestones
+        50000, 100000, 500000, 1000000, 10000000, // Credit milestones
+        10, 50, 100, 500, 1000,                   // Blackjack wins
+        3, 5, 10, 15, 20,                         // Win streaks
+        1, 1, 1, 1, 1,                            // Card hands (boolean)
+        100, 1000, 5000,                          // Slot spins
+        1, 25                                     // Secret and completionist
+    };
+    // Populate global array
+    for (int i = 0; i < MAX_ACHIEVEMENTS; i++)
+    {
+        strncpy(g_achievement_defs[i].name, names[i], ACHIEVEMENT_NAME_LEN - 1);
+        g_achievement_defs[i].name[ACHIEVEMENT_NAME_LEN - 1] = '\0';
+        strncpy(g_achievement_defs[i].description, descs[i], ACHIEVEMENT_DESC_LEN - 1);
+        g_achievement_defs[i].description[ACHIEVEMENT_DESC_LEN - 1] = '\0';
+        g_achievement_defs[i].target = targets[i];
+    }
+    printf("Initialized %d achievement definitions\n", MAX_ACHIEVEMENTS);
+}
+// ============================================================================
 const char *GetMemberStatusString(MEMBERSTATUS status)
 {
     switch (status)
@@ -356,6 +440,7 @@ void InitPlayerAccounts(LobbyState *g) // UPDATE InitPlayerAccounts to zero the 
     g->accounts[3].is_active = true;
     g->accounts[3].is_logged_in = false;
     g->accounts[3].member_status = CalculateMemberStatus(g->accounts[3].credits, g->accounts[3].tokens);
+    g->accounts[3].has_insurance = false;
     memset(&g->accounts[3].stats, 0, sizeof(PlayerStats));
     memset(g->accounts[3].achievements, 0, sizeof(g->accounts[3].achievements));
     InitAchievements(&g->accounts[3]);
@@ -369,11 +454,84 @@ void InitPlayerAccounts(LobbyState *g) // UPDATE InitPlayerAccounts to zero the 
     g->accounts[4].is_active = true;
     g->accounts[4].is_logged_in = false;
     g->accounts[4].member_status = CalculateMemberStatus(g->accounts[4].credits, g->accounts[4].tokens);
+    g->accounts[4].has_insurance = false;
     memset(&g->accounts[4].stats, 0, sizeof(PlayerStats));
     memset(g->accounts[4].achievements, 0, sizeof(g->accounts[4].achievements));
     InitAchievements(&g->accounts[4]);
     g->account_count = 5;
 }
+// ============================================================================
+// REPLACE your existing SaveAllAccounts() function with this one
+// ============================================================================
+void SaveAllAccounts(const LobbyState *g)
+{
+    cJSON *root = cJSON_CreateObject();
+    if (!root)
+        return;
+    cJSON *accounts_array = cJSON_CreateArray();
+    if (!accounts_array)
+    {
+        cJSON_Delete(root);
+        return;
+    }
+    cJSON_AddItemToObject(root, "accounts", accounts_array);
+    for (int i = 0; i < g->account_count; i++)
+    {
+        cJSON *acc = cJSON_CreateObject();
+        if (!acc)
+            continue;
+        cJSON_AddStringToObject(acc, "first_name", g->accounts[i].first_name);
+        cJSON_AddStringToObject(acc, "last_name", g->accounts[i].last_name);
+        cJSON_AddNumberToObject(acc, "credits", g->accounts[i].credits);
+        cJSON_AddNumberToObject(acc, "wins", g->accounts[i].wins);
+        cJSON_AddNumberToObject(acc, "losses", g->accounts[i].losses);
+        cJSON_AddBoolToObject(acc, "is_ai", g->accounts[i].is_ai);
+        cJSON_AddNumberToObject(acc, "ai_type", (int)g->accounts[i].ai_type);
+        cJSON_AddBoolToObject(acc, "is_active", g->accounts[i].is_active);
+        cJSON_AddNumberToObject(acc, "tokens", g->accounts[i].tokens);
+        cJSON_AddNumberToObject(acc, "Member_Status", (int)g->accounts[i].member_status);
+        cJSON_AddBoolToObject(acc, "has_insurance", g->accounts[i].has_insurance);
+        // NEW: Save stats object
+        cJSON *stats = cJSON_CreateObject();
+        cJSON_AddNumberToObject(stats, "total_games_played", g->accounts[i].stats.total_games_played);
+        cJSON_AddNumberToObject(stats, "total_wins", g->accounts[i].stats.total_wins);
+        cJSON_AddNumberToObject(stats, "total_losses", g->accounts[i].stats.total_losses);
+        cJSON_AddNumberToObject(stats, "total_winnings_cash", g->accounts[i].stats.total_winnings_cash);
+        cJSON_AddNumberToObject(stats, "highest_single_win", g->accounts[i].stats.highest_single_win);
+        cJSON_AddBoolToObject(stats, "jg_matched_jokers", g->accounts[i].stats.jg_matched_jokers);
+        cJSON_AddNumberToObject(stats, "jg_fastest_win", g->accounts[i].stats.jg_fastest_win);
+        cJSON_AddBoolToObject(stats, "jg_filled_all_five_ranks", g->accounts[i].stats.jg_filled_all_five_ranks);
+        cJSON_AddBoolToObject(stats, "cs_had_flush", g->accounts[i].stats.cs_had_flush);
+        cJSON_AddBoolToObject(stats, "cs_had_four_kind", g->accounts[i].stats.cs_had_four_kind);
+        cJSON_AddBoolToObject(stats, "cs_had_full_house", g->accounts[i].stats.cs_had_full_house);
+        cJSON_AddBoolToObject(stats, "cs_had_straight_flush", g->accounts[i].stats.cs_had_straight_flush);
+        cJSON_AddBoolToObject(stats, "cs_had_royal_flush", g->accounts[i].stats.cs_had_royal_flush);
+        cJSON_AddNumberToObject(stats, "bj_hands_played", g->accounts[i].stats.bj_hands_played);
+        cJSON_AddNumberToObject(stats, "bj_wins", g->accounts[i].stats.bj_wins);
+        cJSON_AddNumberToObject(stats, "bj_losses", g->accounts[i].stats.bj_losses);
+        cJSON_AddNumberToObject(stats, "jg_hands_played", g->accounts[i].stats.jg_hands_played);
+        cJSON_AddNumberToObject(stats, "jg_wins", g->accounts[i].stats.jg_wins);
+        cJSON_AddNumberToObject(stats, "slots_spins", g->accounts[i].stats.slots_spins);
+        cJSON_AddNumberToObject(stats, "slots_wins", g->accounts[i].stats.slots_wins);
+        cJSON_AddNumberToObject(stats, "current_win_streak", g->accounts[i].stats.current_win_streak);
+        cJSON_AddNumberToObject(stats, "best_win_streak", g->accounts[i].stats.best_win_streak);
+        cJSON_AddItemToObject(acc, "stats", stats);
+        cJSON_AddItemToArray(accounts_array, acc);
+    }
+    char *json_string = cJSON_Print(root);
+    FILE *fp = fopen(ACCOUNTS_FILE, "w");
+    if (fp)
+    {
+        fprintf(fp, "%s", json_string);
+        fclose(fp);
+    }
+    free(json_string);
+    cJSON_Delete(root);
+}
+// ============================================================================
+// REPLACE your existing LoadAllAccounts() function with this one
+// (Find the section after it reads basic account data)
+// ============================================================================
 void LoadAllAccounts(LobbyState *g)
 {
     FILE *fp = fopen(ACCOUNTS_FILE, "r");
@@ -428,11 +586,7 @@ void LoadAllAccounts(LobbyState *g)
         cJSON *ai_type = cJSON_GetObjectItem(account, "ai_type");
         cJSON *is_active = cJSON_GetObjectItem(account, "is_active");
         cJSON *tokens = cJSON_GetObjectItem(account, "tokens");
-        // cJSON *json_status = cJSON_GetObjectItem(account, "Member_Status");
-        if (cJSON_IsNumber(tokens))
-            g->accounts[count].tokens = tokens->valuedouble;
-        else
-            g->accounts[count].tokens = 0.0;
+        cJSON *has_insurance = cJSON_GetObjectItem(account, "has_insurance");
         if (cJSON_IsString(first))
             strncpy(g->accounts[count].first_name, first->valuestring, MAX_ACCOUNT_NAME_LEN);
         if (cJSON_IsString(last))
@@ -445,56 +599,79 @@ void LoadAllAccounts(LobbyState *g)
             g->accounts[count].losses = losses->valueint;
         if (cJSON_IsBool(is_ai))
             g->accounts[count].is_ai = cJSON_IsTrue(is_ai);
-        g->accounts[count].member_status = CalculateMemberStatus(g->accounts[count].credits, g->accounts[count].tokens);
         if (cJSON_IsNumber(ai_type))
             g->accounts[count].ai_type = (AIType)ai_type->valueint;
         if (cJSON_IsBool(is_active))
             g->accounts[count].is_active = cJSON_IsTrue(is_active);
+        if (cJSON_IsNumber(tokens))
+            g->accounts[count].tokens = tokens->valuedouble;
+        else
+            g->accounts[count].tokens = 0.0;
+        if (cJSON_IsBool(has_insurance))
+            g->accounts[count].has_insurance = cJSON_IsTrue(has_insurance);
+        g->accounts[count].member_status = CalculateMemberStatus(g->accounts[count].credits, g->accounts[count].tokens);
         g->accounts[count].is_logged_in = false;
+        // NEW: Load stats object
+        cJSON *stats = cJSON_GetObjectItem(account, "stats");
+        if (stats)
+        {
+            cJSON *item;
+            if ((item = cJSON_GetObjectItem(stats, "total_games_played")))
+                g->accounts[count].stats.total_games_played = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "total_wins")))
+                g->accounts[count].stats.total_wins = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "total_losses")))
+                g->accounts[count].stats.total_losses = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "total_winnings_cash")))
+                g->accounts[count].stats.total_winnings_cash = item->valuedouble;
+            if ((item = cJSON_GetObjectItem(stats, "highest_single_win")))
+                g->accounts[count].stats.highest_single_win = item->valuedouble;
+            if ((item = cJSON_GetObjectItem(stats, "jg_matched_jokers")))
+                g->accounts[count].stats.jg_matched_jokers = cJSON_IsTrue(item);
+            if ((item = cJSON_GetObjectItem(stats, "jg_fastest_win")))
+                g->accounts[count].stats.jg_fastest_win = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "jg_filled_all_five_ranks")))
+                g->accounts[count].stats.jg_filled_all_five_ranks = cJSON_IsTrue(item);
+            if ((item = cJSON_GetObjectItem(stats, "cs_had_flush")))
+                g->accounts[count].stats.cs_had_flush = cJSON_IsTrue(item);
+            if ((item = cJSON_GetObjectItem(stats, "cs_had_four_kind")))
+                g->accounts[count].stats.cs_had_four_kind = cJSON_IsTrue(item);
+            if ((item = cJSON_GetObjectItem(stats, "cs_had_full_house")))
+                g->accounts[count].stats.cs_had_full_house = cJSON_IsTrue(item);
+            if ((item = cJSON_GetObjectItem(stats, "cs_had_straight_flush")))
+                g->accounts[count].stats.cs_had_straight_flush = cJSON_IsTrue(item);
+            if ((item = cJSON_GetObjectItem(stats, "cs_had_royal_flush")))
+                g->accounts[count].stats.cs_had_royal_flush = cJSON_IsTrue(item);
+            if ((item = cJSON_GetObjectItem(stats, "bj_hands_played")))
+                g->accounts[count].stats.bj_hands_played = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "bj_wins")))
+                g->accounts[count].stats.bj_wins = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "bj_losses")))
+                g->accounts[count].stats.bj_losses = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "jg_hands_played")))
+                g->accounts[count].stats.jg_hands_played = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "jg_wins")))
+                g->accounts[count].stats.jg_wins = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "slots_spins")))
+                g->accounts[count].stats.slots_spins = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "slots_wins")))
+                g->accounts[count].stats.slots_wins = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "current_win_streak")))
+                g->accounts[count].stats.current_win_streak = item->valueint;
+            if ((item = cJSON_GetObjectItem(stats, "best_win_streak")))
+                g->accounts[count].stats.best_win_streak = item->valueint;
+        }
+        else
+        {
+            // Initialize stats to zero if not present
+            memset(&g->accounts[count].stats, 0, sizeof(PlayerStats));
+            g->accounts[count].stats.jg_fastest_win = -1; // Sentinel
+        }
         count++;
     }
     g->account_count = count;
     cJSON_Delete(root);
     free(buffer);
-}
-void SaveAllAccounts(const LobbyState *g)
-{
-    cJSON *root = cJSON_CreateObject();
-    if (!root)
-        return;
-    cJSON *accounts_array = cJSON_CreateArray();
-    if (!accounts_array)
-    {
-        cJSON_Delete(root);
-        return;
-    }
-    cJSON_AddItemToObject(root, "accounts", accounts_array);
-    for (int i = 0; i < g->account_count; i++)
-    {
-        cJSON *acc = cJSON_CreateObject();
-        if (!acc)
-            continue;
-        cJSON_AddStringToObject(acc, "first_name", g->accounts[i].first_name);
-        cJSON_AddStringToObject(acc, "last_name", g->accounts[i].last_name);
-        cJSON_AddNumberToObject(acc, "credits", g->accounts[i].credits);
-        cJSON_AddNumberToObject(acc, "wins", g->accounts[i].wins);
-        cJSON_AddNumberToObject(acc, "losses", g->accounts[i].losses);
-        cJSON_AddBoolToObject(acc, "is_ai", g->accounts[i].is_ai);
-        cJSON_AddNumberToObject(acc, "ai_type", (int)g->accounts[i].ai_type);
-        cJSON_AddBoolToObject(acc, "is_active", g->accounts[i].is_active);
-        cJSON_AddNumberToObject(acc, "tokens", g->accounts[i].tokens);
-        cJSON_AddNumberToObject(acc, "Member_Status", (int)g->accounts[i].member_status);
-        cJSON_AddItemToArray(accounts_array, acc);
-    }
-    char *json_string = cJSON_Print(root);
-    FILE *fp = fopen(ACCOUNTS_FILE, "w");
-    if (fp)
-    {
-        fprintf(fp, "%s", json_string);
-        fclose(fp);
-    }
-    free(json_string);
-    cJSON_Delete(root);
 }
 void CreateDefaultLeaderboard(LobbyState *g)
 {
@@ -694,11 +871,71 @@ const char *GetPlayerName(const LobbyState *g, int player)
                  g->accounts[idx].first_name);
     return name_buffer;
 }
+// Replace your existing UpdateAccountCredits function with this:
 void UpdateAccountCredits(LobbyState *g)
 {
-    for (int i = 0; i < g->account_count; i++) // Important: Update member status before saving!
+    for (int i = 0; i < g->account_count; i++)
     {
-        g->accounts[i].member_status = CalculateMemberStatus(g->accounts[i].credits, g->accounts[i].tokens);
+        Account *acc = &g->accounts[i];
+        // Handle human player bankruptcy
+        if (!acc->is_ai && acc->credits <= -25000.0)
+        {
+            if (acc->has_insurance)
+            {
+                // Apply insurance: soft reset with benefits
+                acc->credits = 10000.0;
+                acc->tokens = 10.0;
+                acc->has_insurance = false; // Insurance is consumed
+                printf("[INSURANCE] %s %s used bankruptcy protection!\n",
+                       acc->first_name, acc->last_name);
+            }
+            else
+            {
+                // Full reset: lose everything
+                acc->credits = 10000.0;
+                acc->tokens = 0.0;
+                acc->has_insurance = false;
+                // Reset all achievements
+                for (int j = 0; j < MAX_ACHIEVEMENTS; j++)
+                {
+                    acc->achievements[j].unlocked = false;
+                }
+                // Reset all stats
+                memset(&acc->stats, 0, sizeof(PlayerStats));
+                acc->stats.jg_fastest_win = -1; // Sentinel value
+                printf("[BANKRUPTCY] %s %s hit -$25,000! Total reset.\n",
+                       acc->first_name, acc->last_name);
+            }
+            SaveAllAccounts(g);
+            SaveAchievements(g);
+        }
+        // Handle AI bankruptcy (reset to default)
+        else if (acc->is_ai && acc->credits <= 0.0)
+        {
+            acc->credits = 1000000.0;
+            acc->tokens = 10000.0;
+            // Award bankruptcy achievements to human players
+            if (g->p1_account_index >= 0)
+            {
+                Account *player = &g->accounts[g->p1_account_index];
+                if (strcmp(acc->first_name, "FLINT") == 0)
+                {
+                    player->achievements[7].unlocked = true;
+                }
+                else if (strcmp(acc->first_name, "THEA") == 0)
+                {
+                    player->achievements[8].unlocked = true;
+                }
+                else if (strcmp(acc->first_name, "BOB") == 0)
+                {
+                    player->achievements[9].unlocked = true;
+                }
+                SaveAchievements(g);
+            }
+            printf("[AI RESET] %s reset to defaults\n", acc->first_name);
+        }
+        // Update member status for all accounts
+        acc->member_status = CalculateMemberStatus(acc->credits, acc->tokens);
     }
     SaveAllAccounts(g);
 }
@@ -823,8 +1060,10 @@ void LoadSettings(LobbyState *g)
     cJSON *item;
     if ((item = cJSON_GetObjectItem(root, "cover_p2_cards")) != NULL)
         g->cover_p2_cards = cJSON_IsTrue(item);
-    if ((item = cJSON_GetObjectItem(root, "ai_move_delay")) != NULL)
-        g->ai_move_delay = (float)item->valuedouble;
+    if ((item = cJSON_GetObjectItem(root, "ai_delay_mode")) != NULL)
+        g->ai_delay_mode = (AIDelayMode)CLAMP(item->valueint, AI_DELAY_FAST, AI_DELAY_SLOW);
+    else
+        g->ai_delay_mode = AI_DELAY_NORMAL; // fallback
     if ((item = cJSON_GetObjectItem(root, "music_enabled")) != NULL)
         g->music_enabled = cJSON_IsTrue(item);
     if ((item = cJSON_GetObjectItem(root, "window_scale")) != NULL)
@@ -846,7 +1085,7 @@ void SaveSettings(const LobbyState *g)
 {
     cJSON *root = cJSON_CreateObject();
     cJSON_AddBoolToObject(root, "cover_p2_cards", g->cover_p2_cards);
-    cJSON_AddNumberToObject(root, "ai_move_delay", g->ai_move_delay);
+    cJSON_AddNumberToObject(root, "ai_delay_mode", (int)g->ai_delay_mode);
     cJSON_AddBoolToObject(root, "music_enabled", g->music_enabled);
     cJSON_AddNumberToObject(root, "window_scale", g->window_scale);
     cJSON_AddBoolToObject(root, "is_fullscreen", g->is_fullscreen);
