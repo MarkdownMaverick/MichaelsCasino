@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+
+// Forward declare GameState to avoid circular dependency
+typedef struct GameState GameState;
 // UI Layout constants - Now dynamic
 extern float SCREEN_W;
 extern float SCREEN_H;
@@ -94,7 +97,13 @@ typedef enum
     STATE_SETTINGS,
     STATE_LEADERBOARD,
     STATE_SHOP,
-    STATE_ACHIEVEMENTS
+    STATE_ACHIEVEMENTS,
+    STATE_MODE_SELECTION, // NEW
+    STATE_AI_SELECTION,   // NEW
+    STATE_AI_P2_SELECTION,
+    STATE_JOKERS_GAMBIT,   // NEW
+    STATE_BETTING_SETUP,
+    STATE_SLOT_REELS
 } UIState;
 typedef struct
 {
@@ -167,6 +176,16 @@ typedef struct
     char winner_name[MAX_LEADERBOARD_WINNER_NAME_LEN];
     char timestamp[MAX_LEADERBOARD_TIMESTAMP_LEN];
 } LeaderboardEntry;
+typedef struct BettingState {
+    double p1_bet_amount;
+    double p2_bet_amount;
+    int selected_matchup; // 0=FLINT vs THEA, 1=BOB vs FLINT, 2=THEA vs BOB, 3=RANDOM
+    bool bet_placed;
+    double payout_multiplier;
+    double net_profit;
+    bool player_won_bet;
+    int bet_on_player; // 1 or 2
+} BettingState;
 // Main Game State
 typedef struct
 {
@@ -206,13 +225,30 @@ typedef struct
     int achievement_cursor_row;
     int achievement_scroll_row;
     bool debug_force_check_achievements;
+    // NOTIFICATION SYSTEM
+    char notification_text[64];    // Text to display
+    char notification_subtext[64]; // Optional subtext (e.g. "Achievement Unlocked!")
+    double notification_timer;     // How long to show it
+    float notification_y_offset;   // For sliding animation
+    // New to control account login/out for ai
+    AIType selected_p1_ai;
+    AIType selected_p2_ai;
+    // ===== CRITICAL: ADD THIS LINE =====
+    GameState *game_state; // Embedded game state for Joker's Gambit
+    BettingState betting;
+
+
 } LobbyState;
+
 MEMBERSTATUS CalculateMemberStatus(double credits, double tokens);
 int GetActiveGamepad(void);
 void DebugControllerInput(void);
 void UpdateScreenDimensions(void);
 void ApplyWindowScale(LobbyState *g);
 void ToggleAppFullscreen(LobbyState *g);
+void DrawAIP2Selection(const LobbyState *g);
+void UpdateAIP2Selection(LobbyState *g, Vector2 mouse);
 extern Texture2D g_achievements_atlas;
 extern AchievementDef g_achievement_defs[MAX_ACHIEVEMENTS];
+extern Sound g_menu_navigate_sound;
 #endif // MAIN_H
