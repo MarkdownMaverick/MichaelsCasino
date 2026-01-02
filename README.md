@@ -1,106 +1,79 @@
+```markdown
 <p align="center">Michael's Casino</p>
-
-
 <p align="center">
 <i>A multi-game casino platform featuring classic card games with persistent accounts and competitive leaderboards</i>
 </p>
 
 ## About
 
-**MichaelsCasino** is a fork of [Joker's Gambit](https://github.com/[original-repo]) expanded into a full casino experience. Play multiple card games, track your progress across accounts, and compete on global leaderboards.
+**Michael's Casino** is an expanding casino suite built in C with Raylib, forked and heavily extended from the original [Joker's Gambit](https://github.com/MarkdownMaverick/jokersgambit).  
+It now features a unified lobby, persistent player progression, and multiple playable games sharing the same high-quality card atlas.
 
-### No currently Available Games they will be added when the core is complete
+### Available Games (Now Compiling & Playable)
 
-- **Joker's Gambit** - The original strategic card game (see [original repository](link) for full rules)
-- **Blackjack** - Classic 21 with AI dealers of varying difficulty
-- **Card Slots** - 5-reel poker-based slot machine with traditional hand payouts(JACKS OR BETTER)
+- **Joker's Gambit** – The original strategic 5-rank card placement game with jokers (fully playable)
+- **Jacks or Better Slots** – Classic 5-reel, 3-row video slot machine using poker hand payouts (Jacks or Better rules) with 1–3 token bet levels and 1–3 active paylines
+
+**Blackjack** and additional games are planned next.
 
 ---
 
 ## Features
 
-✅ **Xbox Controler support** - Testing on xbox series x controller
-✅ **Unified Account System** - One profile tracks credits, tokens, and stats across all games  
-✅ **Cross-Game Leaderboard** - Top 100 rankings with game-specific filtering  
-✅ **Persistent Economy** - Credits and tokens carry between sessions  
-✅ **Multiple AI Opponents/Dealers** - BOB (Hard), THEA (Medium), FLINT (Easy)  
-✅ **Shared Asset System** - Efficient texture atlas for all card games  
-DECK0.png (2600×1500px) is a perfect size for a high-res experience.
+✅ **Full Xbox Controller Support** – Tested on Xbox Series X/S controller (SDL2 integration)  
+✅ **Unified Account System** – 5 accounts (3 AI personalities + 2 human slots). Tracks credits, tokens, stats, win streaks, and member status across all games  
+✅ **Cross-Game Leaderboard** – Top 100 entries with game-specific filtering and multiple sort modes  
+✅ **Persistent Economy** – Credits and tokens saved between sessions; used for betting and shop purchases  
+✅ **Multiple AI Opponents** – BOB (aggressive/hard), THEA (balanced/medium), FLINT (conservative/easy)  
+✅ **Shared Asset System** – Single high-resolution card atlas (`DECK0.png`, 2600×1500, 13×5 layout) used efficiently by all games (Joker's Gambit grid, future Blackjack table, and Slot Reels symbols)  
+✅ **Token-Based Betting in Slots** – 1/2/3 token bets activate 1/2/3 paylines with classic Jacks or Better payout table (Royal Flush 800:1)  
+✅ **Full Persistence** – Separate JSON files (`save/` folder) for accounts, leaderboard, achievements, and settings – easy to inspect or modify  
 
-Joker's Gambit uses the cards for its placement grid.
-
-Blackjack will use the exact same cards but likely drawn at a larger scale for the "Table" feel.
-
-Card Slots will treat the cards as "Symbols" on the reels.
-
-By keeping one atlas_manager, I ensure that the GPU only ever has to hold that one image in memory, no matter which game the user is playing.
-### Leaderboard Sorting
-**Filter by game**
--      By credits (highest/lowest)
--      By moves made (fewest/most)
--      By date (newest/oldest)
-
+✅### Leaderboard Sorting
+- Filter by specific game
+- Sort by final credits, moves made, or date/time (ascending/descending)
 
 ---
 
 ## Technical Details
 
-**Display:** 1900×1080 max resolution with scaling support  
-**Assets:** Unified texture atlas (DECK0.png - 2600×1500px, 13×5 card layout)  
-**Audio:** Sound effects and background music  
-**Architecture:** State machine managing game transitions and shared resources
+- **Engine**: Raylib (C99) for rendering, audio, and input
+- **Controller Support**: SDL2 for robust gamepad handling
+- **Data**: cJSON for clean, human-readable save files
+- **Resolution**: 1920×1080 base with scaling options (75%, 100%, 125%, 150%) and borderless fullscreen
+- **Audio**: Background music + extensive sound effects (discards, placements, wins, coins, etc.)
+- **Architecture**: Clean state machine with modular files (`main`, `mainmenu`, `useraccount`, `jokersgambit`, `slotreels`, `gamepad_sdl`, etc.)
+- **Build**: Strict `-Werror` compilation for code quality
 
 ### Current Development Status
-🔨 **In Progress:** Restructuring from single-game to multi-game casino platform  
-- Core lobby system  
-- Game state management  
-- Cross-game account integration
+
+**Core framework complete and compiling cleanly**  
+All foundational systems are now stable and integrated:
+
+- Main menu → Lobby → Mode selection flow
+- Account management (create, login/logout, name editing)
+- Settings (music, AI delay, card cover, scaling, fullscreen)
+- Shop (token purchases with tiered pricing)
+- Achievements system (50 slots, grid view, persistence)
+- Leaderboard (load/save, sorting, filtering)
+- Full game transitions to both Joker's Gambit and Jacks or Better Slots
 
 ---
 
-## Account System
+**Michael's Casino – Vision**
 
-**Default Accounts:** "player one" and "player two" and ai are created on first launch  
-**Matchup Rules:** (PvP, PvAI, AIvAI) no playing against yourself
-Ai vs Ai will be its own section of the game later for betting (the ai would face themselves in a game of jokers gambit 
-player can bet on P1 || P2 to win, watch the game,if win get bet they will get a variable reward based on the bet,,.Money taken first for bets to stop player quitting before losing)
-
----
+A premium-feeling 2D casino suite with deep progression (achievements, member ranks, token economy), satisfying audio/visual feedback, and local "multiplayer" personality through distinct AI opponents. Designed to be easily extensible for future games while maintaining a cohesive, polished experience.
 
 ## Credits
-https://github.com/MarkdownMaverick/jokersgambit/blob/main/credits.md
-*For detailed Joker's Gambit rules and mechanics,
-**Joker's Gambit v4.55** - [(https://github.com/MarkdownMaverick/jokersgambit.git)]
+
+Original Joker's Gambit concept and core mechanics:  
+https://github.com/MarkdownMaverick/jokersgambit  
+(Full credits: [credits.md](credits.md))
+
+Raylib by raysan5 – https://www.raylib.com  
+cJSON by Dave Gamble – https://github.com/DaveGamble/cJSON  
+SDL2 for gamepad support
 
 ---
-
-**Michael's Casino – Core Project Description**
-
-Michael's Casino is a stylish, retro-inspired 2D casino game suite built with Raylib (C99), featuring multiple classic and original gambling games in a unified lobby environment.
-
-**Current Status & Focus**  
-The project is currently in the **core framework phase** – all foundational systems are being built and polished before integrating the full game modes. The goal is a rock-solid, extensible base that feels premium from the moment the player launches the game.
-
-**In Progress Core Features**
-- **Main Menu & Navigation**: Clean main menu with access to Lobby, Accounts, Shop, Settings, Leaderboard, and Achievements. Full keyboard, mouse, and gamepad support (SDL2).
-- **Accounts System**: Up to 5 accounts (3 fixed AI opponents + 2 human players). Persistent JSON storage with credits, tokens, stats, and member status tiers (Member → Presidential).
-- **Settings**: Music toggle, AI delay, card cover, window scale, fullscreen – all persisted via JSON.
-- **Shop**: Token purchase packs with tiered discounts and sell-back option. Modern card-style UI.
-- **Achievements**: 50 achievements displayed in a 5×10 grid using a texture atlas. Full persistence via `achievements.json`, with detailed info panel, hover/selection, and debug force-check button.
-- **Leaderboard**: Persistent high-score tracking across games.
-- **Data Persistence**: Separate JSON files in a `save/` folder for accounts, leaderboard, achievements, and settings – easy to edit manually for testing/cheating.
-- **UI Polish**: Consistent colors, hover/selection feedback, navigation sounds, centered layout with dynamic scaling.
-
-**Games in Progress**
-- **Joker's Gambit**: Fully built and ready for lobby integration (original card-ranking game with jokers).
-- Blackjack and Slot Reels planned next.
-
-**Technical Highlights**
-- Raylib for rendering, audio, input
-- SDL2 for robust gamepad support
-- cJSON for clean, human-readable save files
-- Modular structure (main, mainmenu, useraccount, gamepad_sdl)
-- Strict warning-as-error compilation for code quality
-
-**Vision**  
-A polished, addictive casino experience with deep progression (achievements, member ranks, token economy), local multiplayer feel (vs AI personalities: Bob, Thea, Flint), and a satisfying loop of earning credits/tokens across multiple games. The core is designed to be easily extensible for future additions like Poker, Roulette, etc.
+🎰♣️♦️♥️♠️
+```

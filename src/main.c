@@ -100,32 +100,31 @@ void UpdateModeSelection(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
     // === INPUT ===
-    if (IsKeyPressed(KEY_LEFT) || IsGamepadButtonPressedSDL(gamepad, 13))
+    if (IsKeyPressed(KEY_LEFT) || XboxBtnPressed(gamepad, 13))
     {
         g->menu_selection--;
         if (g->menu_selection < 0)
             g->menu_selection = 3;
     }
-    if (IsKeyPressed(KEY_RIGHT) || IsGamepadButtonPressedSDL(gamepad, 14))
+    if (IsKeyPressed(KEY_RIGHT) || XboxBtnPressed(gamepad, 14))
     {
         g->menu_selection++;
         if (g->menu_selection > 3)
             g->menu_selection = 0;
     }
-    if (IsKeyPressed(KEY_B) || IsGamepadButtonPressedSDL(gamepad, 1))
+    if (IsKeyPressed(KEY_B) || XboxBtnPressed(gamepad, 1))
     {
         SwitchState(g, STATE_LOBBY);
         return;
     }
     // === SELECTION ===
-    bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 0));
+    bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0));
     // === MOUSE INPUT ===
     Rectangle mode_rects[4];
     mode_rects[0] = (Rectangle){CENTER_X - 450, 300, 300, 120}; // PVP
     mode_rects[1] = (Rectangle){CENTER_X - 150, 300, 300, 120}; // PvAI
     mode_rects[2] = (Rectangle){CENTER_X + 150, 300, 300, 120}; // AIvAI
     mode_rects[3] = (Rectangle){CENTER_X + 450, 300, 300, 120}; // BETTING
-
     for (int i = 0; i < 4; i++)
     {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, mode_rects[i]))
@@ -138,57 +137,21 @@ void UpdateModeSelection(LobbyState *g, Vector2 mouse)
     {
         switch (g->menu_selection)
         {
-        case 0: // PVP - Auto-login P2
-        {
-            // Check if P1 is logged in
-            if (g->p1_account_index < 0)
-            {
-                ShowNotification(g, "LOGIN REQUIRED", "P1 must log in first!");
-                SwitchState(g, STATE_ACCOUNTS_MANAGER);
-                break;
-            }
-            // Auto-login the second human account as P2
-            int second_human = -1;
-            for (int i = 0; i < g->account_count; i++)
-            {
-                if (!g->accounts[i].is_ai && i != g->p1_account_index)
-                {
-                    second_human = i;
-                    break;
-                }
-            }
-            // Auto-login P2
-            LoginAccount(g, second_human, 2);
-            // Set mode and start game
-            g->game_state->mode = MODE_PVP;
-            InitGame(g);
-            SwitchState(g, STATE_JOKERS_GAMBIT);
+        case 0:                          // PLAYER vs PLAYER
+            SwitchState(g, MULTIPLAYER); // Go to choice screen first
             break;
-        }
         case 1: // Player vs AI
             g->game_state->mode = MODE_PVAI;
-            AutoLogoutP2(g);
             InitGame(g);
             SwitchState(g, STATE_AI_SELECTION);
             break;
         case 2: // AI vs AI (Fun Mode)
             g->game_state->mode = MODE_AIVAI;
-            AutoLogoutP2(g);
             InitGame(g);
             SwitchState(g, STATE_AI_SELECTION);
             break;
         case 3: // BETTING MODE
-            if (g->p1_account_index < 0)
-            {
-                ShowNotification(g, "LOGIN REQUIRED", "You must log in to place bets!");
-                SwitchState(g, STATE_ACCOUNTS_MANAGER);
-                break;
-            }
-            // Initialize betting state
-            g->betting.p1_bet_amount = 0;
-            g->betting.p2_bet_amount = 0;
-            g->betting.selected_matchup = 0;
-            g->betting.bet_placed = false;
+            g->game_state->mode = MODE_BETTING;
             SwitchState(g, STATE_BETTING_SETUP);
             break;
         default:
@@ -251,25 +214,24 @@ void UpdateAISelection(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
     // Navigation...
-    if (IsKeyPressed(KEY_LEFT) || IsGamepadButtonPressedSDL(gamepad, 13))
+    if (IsKeyPressed(KEY_LEFT) || XboxBtnPressed(gamepad, 13))
     {
         g->menu_selection--;
         if (g->menu_selection < 0)
             g->menu_selection = 2;
     }
-    if (IsKeyPressed(KEY_RIGHT) || IsGamepadButtonPressedSDL(gamepad, 14))
+    if (IsKeyPressed(KEY_RIGHT) || XboxBtnPressed(gamepad, 14))
     {
         g->menu_selection++;
         if (g->menu_selection > 2)
             g->menu_selection = 0;
     }
-    if (IsKeyPressed(KEY_B) || IsGamepadButtonPressedSDL(gamepad, 1))
+    if (IsKeyPressed(KEY_B) || XboxBtnPressed(gamepad, 1))
     {
         SwitchState(g, STATE_MODE_SELECTION);
         return;
     }
-
-    bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 0));
+    bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0));
     Rectangle ai_rects[3];
     ai_rects[0] = (Rectangle){CENTER_X - 450, 300, 300, 120};
     ai_rects[1] = (Rectangle){CENTER_X - 150, 300, 300, 120};
@@ -314,46 +276,25 @@ void UpdateAIP2Selection(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
     // === KEYBOARD INPUT ===
-    if (IsKeyPressed(KEY_LEFT))
+    if (IsKeyPressed(KEY_LEFT) || XboxBtnPressed(gamepad, 13))
     {
         g->menu_selection--;
         if (g->menu_selection < 0)
             g->menu_selection = 2;
     }
-    if (IsKeyPressed(KEY_RIGHT))
+    if (IsKeyPressed(KEY_RIGHT) || XboxBtnPressed(gamepad, 14))
     {
         g->menu_selection++;
         if (g->menu_selection > 2)
             g->menu_selection = 0;
     }
-    if (IsKeyPressed(KEY_B) || IsKeyPressed(KEY_ESCAPE))
+    if (IsKeyPressed(KEY_B) || XboxBtnPressed(gamepad, 1))
     {
         SwitchState(g, STATE_AI_SELECTION);
         return;
     }
-    // === GAMEPAD INPUT ===
-    if (gamepad >= 0)
-    {
-        if (IsGamepadButtonPressedSDL(gamepad, 13))
-        {
-            g->menu_selection--;
-            if (g->menu_selection < 0)
-                g->menu_selection = 2;
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 14))
-        {
-            g->menu_selection++;
-            if (g->menu_selection > 2)
-                g->menu_selection = 0;
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 1))
-        {
-            SwitchState(g, STATE_AI_SELECTION);
-            return;
-        }
-    }
     // === SELECTION ===
-    bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 0));
+    bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0));
     // === MOUSE INPUT ===
     Rectangle ai_rects[3];
     ai_rects[0] = (Rectangle){CENTER_X - 450, 300, 300, 120};
@@ -409,6 +350,15 @@ int main(void)
     InitAudioDevice();
     g_background_music = LoadMusicStream("sfx/track.mp3");
     g_coin_sound = LoadSound("sfx/coin.wav");
+    g_discard_sound = LoadSound("sfx/discard.wav");
+    g_place_sound = LoadSound("sfx/place.wav");
+    g_filled_rank_sound = LoadSound("sfx/filledrank.wav");
+    g_win_sound = LoadSound("sfx/win.wav");
+    g_joker_sound = LoadSound("sfx/onejoker.wav");
+    g_matching_jokers_sound = LoadSound("sfx/twojokers.wav");
+    g_matching_cards_sound = LoadSound("sfx/matchingcards.wav");
+    g_continue_sound = LoadSound("sfx/continue.wav");
+    g_shuffle_sound = LoadSound("sfx/shuffle.wav");
     g_achievements_atlas = LoadTexture("atlas/achievements.png");
     // Initialize game state
     LobbyState game_state = {0};
@@ -437,7 +387,6 @@ int main(void)
     game_state.achievement_cursor_col = 0;
     game_state.achievement_cursor_row = 0;
     game_state.achievement_scroll_row = 0;
-
     game_state.editing_name = false;
     memset(game_state.edit_first_name, 0, sizeof(game_state.edit_first_name));
     memset(game_state.edit_last_name, 0, sizeof(game_state.edit_last_name));
@@ -464,21 +413,14 @@ int main(void)
     {
         UpdateGamepadSDL();
         Vector2 mouse = GetMousePosition();
-        // Update music
-        if (game_state.music_enabled)
+        if (game_state.music_enabled) // Update music
         {
             UpdateMusicStream(g_background_music);
         }
-        // Global fullscreen toggle
-        int gamepad = GetActiveGamepad();
-        if (IsKeyPressed(KEY_F11) || (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 8)))
+        int gamepad = GetActiveGamepad(); // Global fullscreen toggle
+        if (IsKeyPressed(KEY_F11) || (gamepad >= 0 && XboxBtnPressed(gamepad, 8)))
         {
             ToggleAppFullscreen(&game_state);
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 8))
-        {
-            TakeScreenshot("screenshot.png");
-            DrawText("Screenshot Taken!", (int)(CENTER_X - 180), 400, 30, GREEN);
         }
         switch (game_state.state)
         {
@@ -503,10 +445,10 @@ int main(void)
         case STATE_ACHIEVEMENTS:
             UpdateAchievements(&game_state, mouse);
             break;
-        case STATE_MODE_SELECTION: // NEW
+        case STATE_MODE_SELECTION:
             UpdateModeSelection(&game_state, mouse);
             break;
-        case STATE_AI_SELECTION: // NEW
+        case STATE_AI_SELECTION:
             UpdateAISelection(&game_state, mouse);
             break;
         case STATE_AI_P2_SELECTION:
@@ -516,17 +458,27 @@ int main(void)
             UpdateJokersGambit(&game_state, mouse);
             break;
         case STATE_BETTING_SETUP:
-            UpdateJokersGambit(&game_state, mouse);
+            UpdateBettingSetup(&game_state, mouse);
             break;
         case STATE_SLOT_REELS:
-    UpdateSlotReels(&game_state, &g_slot_state);
-    DrawSlotReels(&game_state, &g_slot_state);
-    break;
+            UpdateSlotReels(&game_state, &g_slot_state);
+            break;
+        case STATE_PVP_SETUP_P1:
+            UpdatePVPSetupP1(&game_state);
+            break;
+        case STATE_PVP_SETUP_P2:
+            UpdatePVPSetupP2(&game_state);
+            break;
+        case MULTIPLAYER:
+            UpdateMultiplayer(&game_state);
+            break;
+        case STATE_ONLINE_CHOICE:
+            UpdateOnlineChoice(&game_state);
+            break;
         default:
             break;
         }
-        // Draw
-        BeginDrawing();
+        BeginDrawing(); //   DRAW STATES
         ClearBackground(DARKGRAY);
         switch (game_state.state)
         {
@@ -551,10 +503,10 @@ int main(void)
         case STATE_ACHIEVEMENTS:
             DrawAchievements(&game_state);
             break;
-        case STATE_MODE_SELECTION: // NEW
+        case STATE_MODE_SELECTION:
             DrawModeSelection(&game_state);
             break;
-        case STATE_AI_SELECTION: // NEW
+        case STATE_AI_SELECTION:
             DrawAISelection(&game_state);
             break;
         case STATE_AI_P2_SELECTION:
@@ -564,12 +516,23 @@ int main(void)
             DrawJokersGambit(&game_state);
             break;
         case STATE_BETTING_SETUP:
-            DrawJokersGambit(&game_state);
+            DrawBettingSetup(&game_state);
             break;
         case STATE_SLOT_REELS:
-    UpdateSlotReels(&game_state, &g_slot_state);
-    DrawSlotReels(&game_state, &g_slot_state);
-    break;
+            DrawSlotReels(&game_state, &g_slot_state);
+            break;
+        case STATE_PVP_SETUP_P1:
+            DrawPVPSetupP1(&game_state);
+            break;
+        case STATE_PVP_SETUP_P2:
+            DrawPVPSetupP2(&game_state);
+            break;
+        case MULTIPLAYER:
+            DrawMultiplayerMode(&game_state);
+            break;
+        case STATE_ONLINE_CHOICE:
+            DrawOnlineChoice(&game_state);
+            break;
         default:
             break;
         }
@@ -594,6 +557,7 @@ int main(void)
     UnloadTexture(g_achievements_atlas);
     UnloadMusicStream(g_background_music);
     free(game_state.game_state);
+
     CloseAudioDevice();
     CloseWindow();
     return 0;

@@ -20,7 +20,7 @@ void InitGamepadSDL(void);
 bool IsGamepadAvailableSDL(int gamepad);
 const char* GetGamepadNameSDL(int gamepad);
 bool IsGamepadButtonDownSDL(int gamepad, int button);
-bool IsGamepadButtonPressedSDL(int gamepad, int button);
+bool XboxBtnPressed(int gamepad, int button);
 float GetGamepadAxisSDL(int gamepad, int axis);
 void UpdateGamepadSDL(void);
 

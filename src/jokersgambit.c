@@ -1,10 +1,13 @@
+
 #include "jokersgambit.h"
-#include "aibots.h"      // For AI_SelectDiscard, AI_UpdatePlacementPhase
-#include "mainmenu.h"    // For ShowNotification, SwitchState
-#include "gamepad_sdl.h" // For IsGamepadButtonPressedSDL
-#include "useraccount.h" // For account functions
-#include "main.h"        // For GetActiveGamepad
+#include "aibots.h"
+#include "mainmenu.h"
+#include "gamepad_sdl.h"
+#include "useraccount.h"
+#include "main.h"
 #include <time.h>
+#include "multiplayer.h"
+
 #define UI_FRAME_W 480
 #define UI_FRAME_H 150
 #define P1_UI_X 10
@@ -41,6 +44,7 @@ Sound g_continue_sound = {0};
 Sound g_coin_sound = {0};
 Sound g_shuffle_sound = {0};
 GameState g_initial_state = {0};
+
 void LoadCardAtlas(void)
 {
     g_atlas_texture = LoadTexture("assets/DECK0.png");
@@ -48,7 +52,6 @@ void LoadCardAtlas(void)
     {
         printf("ERROR: Failed to load card atlas DECK0.png (id=%u, size=%dx%d)\n",
                g_atlas_texture.id, g_atlas_texture.width, g_atlas_texture.height);
-        // Optional: load a placeholder or exit
     }
     else
     {
@@ -350,13 +353,16 @@ void DrawPlayerUI(LobbyState *core, const GameState *g, int player)
 void DrawGameLayout(LobbyState *core, const GameState *g)
 {
     Vector2 mouse = GetMousePosition();
-    // === GAMEPAD INPUT ===
     int gamepad = GetActiveGamepad();
+
     DrawPlayerUI(core, g, 1);
     DrawPlayerUI(core, g, 2);
+
+    // Draw keycards and slots
     for (int k = 0; k < KEYCARDS; k++)
     {
         DrawCard(g->keycards[k], KeyCardRect(k), RAYWHITE);
+
         for (int s = 0; s < 3; s++)
         {
             Rectangle slot_rect = SlotRect(1, k, s);
@@ -365,6 +371,7 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
             else
                 DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), slot_rect, (Vector2){0, 0}, 0.0f, Fade(WHITE, 0.25f));
         }
+
         for (int s = 0; s < 3; s++)
         {
             Rectangle slot_rect = SlotRect(2, k, s);
@@ -374,14 +381,24 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
                 DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), slot_rect, (Vector2){0, 0}, 0.0f, Fade(WHITE, 0.25f));
         }
     }
+
+    // Draw player hands
     for (int i = 0; i < HAND_SIZE; i++)
     {
         Rectangle p1_rect = HandRect(1, i);
         if (i < g->p1_hand_size)
         {
-            Color tint = (g->p1_discard_ready && i == g->p1_discard_idx) ? YELLOW : RAYWHITE;
-            DrawCard(g->player1_hand[i], p1_rect, tint);
+            if (g->cover_p1_cards)
+            {
+                DrawTexturePro(g_atlas_texture, GetAtlasTempCover(), p1_rect, (Vector2){0, 0}, 0.0f, WHITE);
+            }
+            else
+            {
+                Color tint = (g->p1_discard_ready && i == g->p1_discard_idx) ? YELLOW : RAYWHITE;
+                DrawCard(g->player1_hand[i], p1_rect, tint);
+            }
         }
+
         bool p1_btn_enabled = false;
         const char *p1_btn_text = "---";
         if (g->state == STATE_P1_SELECT_DISCARD && i < g->p1_hand_size)
@@ -396,19 +413,28 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
         }
         else if (g->state == STATE_WAIT_FOR_TURN)
             p1_btn_text = "PLACE";
+
         DrawButton(ButtonRect(1, i), CheckCollisionPointRec(mouse, ButtonRect(1, i)), p1_btn_enabled, p1_btn_text);
+
         Rectangle p2_rect = HandRect(2, i);
         if (i < g->p2_hand_size)
         {
-            bool should_cover = g->cover_p2_cards && !IsPlayerAI(g, 1) && g->state == STATE_P1_SELECT_DISCARD;
+
+            bool should_cover = g->cover_p2_cards &&
+                                ((!IsPlayerAI(g, 1) && g->state == STATE_P1_SELECT_DISCARD) ||
+                                 g->mode == MODE_PVP);
+
             if (should_cover)
+            {
                 DrawTexturePro(g_atlas_texture, GetAtlasTempCover(), p2_rect, (Vector2){0, 0}, 0.0f, WHITE);
+            }
             else
             {
                 Color tint = (g->p2_discard_ready && i == g->p2_discard_idx) ? PURPLE : RAYWHITE;
                 DrawCard(g->player2_hand[i], p2_rect, tint);
             }
         }
+
         bool p2_btn_enabled = false;
         const char *p2_btn_text = "---";
         if (g->state == STATE_P1_SELECT_DISCARD && i < g->p2_hand_size)
@@ -423,54 +449,80 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
         }
         else if (g->state == STATE_WAIT_FOR_TURN)
             p2_btn_text = "PLACE";
+
         DrawButton(ButtonRect(2, i), CheckCollisionPointRec(mouse, ButtonRect(2, i)), p2_btn_enabled, p2_btn_text);
     }
+
+    // Draw discard piles
     Rectangle d1_rect = DiscardPileRect(1);
     if (g->revealed_p1.is_valid)
         DrawCard(g->revealed_p1, d1_rect, RAYWHITE);
     else
         DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), d1_rect, (Vector2){0, 0}, 0.0f, WHITE);
+
     Rectangle d2_rect = DiscardPileRect(2);
     if (g->revealed_p2.is_valid)
         DrawCard(g->revealed_p2, d2_rect, RAYWHITE);
     else
         DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), d2_rect, (Vector2){0, 0}, 0.0f, WHITE);
+
     DrawContinueButtons(g, mouse);
-    if (IsKeyPressed(KEY_COMMA) || (IsGamepadButtonPressedSDL(gamepad, 6)))
+
+    // Keyboard shortcuts
+    if (IsKeyPressed(KEY_COMMA) || (XboxBtnPressed(gamepad, 6)))
     {
-        AutoLogoutP2(core);
+        AutoLogout(core);
         SwitchState(core, STATE_MAIN_MENU);
     }
-    if (IsKeyPressed(KEY_PERIOD) || (IsGamepadButtonPressedSDL(gamepad, 7)))
+    
+}
+void AutoLogout(LobbyState *g)
+{
+    if (g->p2_account_index >= 0)
     {
-        RestartGameKeepingAccounts(core);
+        printf("[AUTO-LOGOUT] Logging out P2: %s\n",
+               GetPlayerName(g, 2));
+        LogoutAccount(g, 2);
+    }
+    if (g->game_state->mode == MODE_AIVAI)
+    {
+        printf("[AUTO-LOGOUT] Logging out Ai: %s\n",
+               GetPlayerName(g, 1));
+    }
+    if (g->game_state->mode == MODE_BETTING)
+    {
+        printf("%s is logged in!\n",
+               GetPlayerName(g, 1));
     }
 }
 void DrawGameOver(LobbyState *core, GameState *g)
 {
-    DrawRectangle(0, 0, (int)SCREEN_W, (int)SCREEN_H, Fade(BLACK, 0.8f));
-    const char *winner_name = (g->winner == 1) ? GetPlayerName(core, 1) : GetPlayerName(core, 2);
-    char win_text[128];
-    snprintf(win_text, sizeof(win_text), "The Winner: %s!", winner_name);
-    DrawText(win_text, (int)(CENTER_X - (float)MeasureText(win_text, 90) / 2.0f), (int)(SCREEN_H / 2 - 250), 90, GOLD);
-    DrawText("CONGRATULATIONS!", (int)(CENTER_X - (float)MeasureText("CONGRATULATIONS!", 60) / 2.0f), (int)(SCREEN_H / 2 - 150), 60, YELLOW);
-    // Final Score Display
-    float winner_score = (g->winner == 1) ? g->final_score_p1 : g->final_score_p2;
-    // Note: This score is calculated in State Machine, just display it
-    DrawText(TextFormat("Final Result: $%.2f", winner_score), (int)(CENTER_X - (float)MeasureText(TextFormat("Final Result: $%.2f", winner_score), 40) / 2.0f), (int)(SCREEN_H / 2 - 50), 40, LIME);
-    Vector2 mouse = GetMousePosition();
-    Rectangle restart_btn = {CENTER_X - 450, SCREEN_H - 150, 280, 80};
-    Rectangle menu_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
-    Rectangle quit_btn = {CENTER_X + 170, SCREEN_H - 150, 280, 80};
-    DrawRectangleRec(restart_btn, CheckCollisionPointRec(mouse, restart_btn) ? LIME : DARKGREEN);
-    DrawRectangleRec(menu_btn, CheckCollisionPointRec(mouse, menu_btn) ? SKYBLUE : BLUE);
-    DrawRectangleRec(quit_btn, CheckCollisionPointRec(mouse, quit_btn) ? RED : MAROON);
-    DrawText("RESTART", (int)(restart_btn.x + 70), (int)(restart_btn.y + 25), 30, WHITE);
-    DrawText("MAIN MENU", (int)(menu_btn.x + 40), (int)(menu_btn.y + 25), 30, WHITE);
-    DrawText("QUIT", (int)(quit_btn.x + 100), (int)(quit_btn.y + 25), 30, WHITE);
+    if (g->mode == MODE_BETTING)
+    {
+        Vector2 mouse = GetMousePosition();
+        Rectangle menu_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
+        DrawRectangleRec(menu_btn, CheckCollisionPointRec(mouse, menu_btn) ? SKYBLUE : BLUE);
+        DrawText("MAIN MENU", (int)(menu_btn.x + 40), (int)(menu_btn.y + 25), 30, WHITE);
+    }
+    if (g->mode == MODE_PVP)
+    {
+    }
     if (g->mode == MODE_PVAI)
     {
-        DrawText("Restart Costs 100 Credits", (int)(restart_btn.x + 15), (int)(restart_btn.y + 85), 20, LIGHTGRAY);
+        DrawRectangle(0, 0, (int)SCREEN_W, (int)SCREEN_H, Fade(BLACK, 0.8f));
+        const char *winner_name = (g->winner == 1) ? GetPlayerName(core, 1) : GetPlayerName(core, 2);
+        char win_text[128];
+        snprintf(win_text, sizeof(win_text), "The Winner: %s!", winner_name);
+        DrawText(win_text, (int)(CENTER_X - (float)MeasureText(win_text, 90) / 2.0f), (int)(SCREEN_H / 2 - 250), 90, GOLD);
+        DrawText("CONGRATULATIONS!", (int)(CENTER_X - (float)MeasureText("CONGRATULATIONS!", 60) / 2.0f), (int)(SCREEN_H / 2 - 150), 60, YELLOW);
+        // Final Score Display
+        float winner_score = (g->winner == 1) ? g->final_score_p1 : g->final_score_p2;
+        // Note: This score is calculated in State Machine, just display it
+        DrawText(TextFormat("Final Result: $%.2f", winner_score), (int)(CENTER_X - (float)MeasureText(TextFormat("Final Result: $%.2f", winner_score), 40) / 2.0f), (int)(SCREEN_H / 2 - 50), 40, LIME);
+        Vector2 mouse = GetMousePosition();
+        Rectangle menu_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
+        DrawRectangleRec(menu_btn, CheckCollisionPointRec(mouse, menu_btn) ? SKYBLUE : BLUE);
+        DrawText("MAIN MENU", (int)(menu_btn.x + 40), (int)(menu_btn.y + 25), 30, WHITE);
     }
 }
 // Jokers gambit
@@ -867,16 +919,13 @@ void AddLeaderboardEntry(LobbyState *core, int winner)
     const char *p2_name_str = GetPlayerName(core, 2);
     snprintf(e->entry_name, 64, "%s_vs_%s", p1_name_str, p2_name_str);
     snprintf(e->winner_name, 32, "%s", (winner == 1) ? p1_name_str : p2_name_str);
-    // For Leaderboard, we track the TEMP credits earned (plus bonus)
-    float winner_temp = (winner == 1) ? g->p1_temp_credits : g->p2_temp_credits;
+    float winner_temp = (winner == 1) ? g->p1_temp_credits : g->p2_temp_credits; // For Leaderboard, we track the TEMP credits earned (plus bonus)
     float winner_bonus = REWARD_MATCH * (float)g->total_rounds;
     e->total_winnings = winner_temp + winner_bonus;
     e->final_credits = winner_temp;
     e->bonus = winner_bonus;
     e->total_rounds = g->total_rounds;
-    e->moves_made = 0; // Not tracked in this game
     e->game_played = GAME_JOKERS_GAMBIT;
-    // FIX #2: Include time in timestamp
     time_t timer;
     time(&timer);
     struct tm *tm_info = localtime(&timer);
@@ -900,43 +949,59 @@ void AddLeaderboardEntry(LobbyState *core, int winner)
 void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
 {
     GameState *g = core->game_state;
-    // Handle game over state
-    if (g->game_over)
+
+    // --- NETWORK PACKET HANDLING ---
+    if (core->net_connected)
     {
-        Rectangle restart_btn = {CENTER_X - 450, SCREEN_H - 150, 280, 80};
-        Rectangle menu_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
-        Rectangle quit_btn = {CENTER_X + 170, SCREEN_H - 150, 280, 80};
-        // Mouse input
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        NetPacket pkt;
+        while (ReceivePacket(core, &pkt))
         {
-            if (CheckCollisionPointRec(mouse, restart_btn))
+            if (pkt.type == PKT_SEED)
             {
-                if (g->mode == MODE_PVAI)
+                srand((unsigned int)pkt.data); // Fixed sign conversion
+                InitGame(core);
+            }
+            else if (pkt.type == PKT_DISCARD)
+            {
+                if (core->net_role == NET_HOST)
                 {
-                    if (core->p1_account_index >= 0 && core->accounts[core->p1_account_index].credits >= 100.0)
-                    {
-                        SaveAllAccounts(core);
-                        RestartGameKeepingAccounts(core);
-                    }
+                    g->p2_discard_idx = pkt.data;
+                    g->p2_discard_ready = true;
                 }
                 else
                 {
-                    RestartGameKeepingAccounts(core);
+                    g->p1_discard_idx = pkt.data;
+                    g->p1_discard_ready = true;
                 }
+                PlaySound(g_discard_sound);
             }
-            else if (CheckCollisionPointRec(mouse, menu_btn))
+            else if (pkt.type == PKT_PASS)
             {
-                AutoLogoutP2(core);
-                SwitchState(core, STATE_MAIN_MENU);
-            }
-            else if (CheckCollisionPointRec(mouse, quit_btn))
-            {
-                SaveAllAccounts(core);
-                CloseWindow();
+                if (core->net_role == NET_HOST)
+                    g->p2_done_placing = true;
+                else
+                    g->p1_done_placing = true;
             }
         }
+    }
+    // Handle game over state
+    if (g->game_over)
+    {
+        Rectangle menu_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
+
+        // Mouse input
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        {
+             if (CheckCollisionPointRec(mouse, menu_btn))
+            {
+                AutoLogout(core);
+                SwitchState(core, STATE_MAIN_MENU);
+            }
+        }
+
         return;
     }
+
     switch (g->state)
     {
     case STATE_ROUND_START:
@@ -944,18 +1009,13 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
         if (g->mode == MODE_PVAI)
         {
             core->accounts[core->p1_account_index].credits -= P1_TEMP_CREDITS_START;
-            g->state = STATE_P1_SELECT_DISCARD;
-            break;
         }
-        else
-        {
-            g->state = STATE_P1_SELECT_DISCARD;
-            break;
-        }
+        g->state = STATE_P1_SELECT_DISCARD;
+        break;
     }
+
     case STATE_P1_SELECT_DISCARD:
     {
-        
         // AI P1 logic
         if (IsPlayerAI(g, 1) && !g->p1_discard_ready)
         {
@@ -977,6 +1037,7 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 }
             }
         }
+
         // AI P2 logic
         if (IsPlayerAI(g, 2) && !g->p2_discard_ready)
         {
@@ -998,32 +1059,38 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 }
             }
         }
+
         // Check if both players are ready
         if (g->p1_discard_ready && g->p2_discard_ready)
         {
             g->state = STATE_REVEAL_AND_RESOLVE;
         }
+        break;
     }
-    break;
+
     case STATE_REVEAL_AND_RESOLVE:
     {
         g->revealed_p1 = g->player1_hand[g->p1_discard_idx];
         g->revealed_p2 = g->player2_hand[g->p2_discard_idx];
         g->p1_discard_ready = false;
         g->p2_discard_ready = false;
+
         // Remove discarded cards from hands
         for (int i = g->p1_discard_idx; i < g->p1_hand_size - 1; i++)
             g->player1_hand[i] = g->player1_hand[i + 1];
         g->p1_hand_size--;
+
         for (int i = g->p2_discard_idx; i < g->p2_hand_size - 1; i++)
             g->player2_hand[i] = g->player2_hand[i + 1];
         g->p2_hand_size--;
+
         ResolveDiscards(g);
         g->state = STATE_WAIT_FOR_TURN;
         g->ai_timer = 0;
         g->Reshuffle_cover_timer = 0;
+        break;
     }
-    break;
+
     case STATE_WAIT_FOR_TURN:
     {
         // AI placement updates
@@ -1031,6 +1098,7 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
             AI_UpdatePlacementPhase(g, 1);
         if (IsPlayerAI(g, 2) && !g->p2_done_placing)
             AI_UpdatePlacementPhase(g, 2);
+
         // Check if both done
         if (g->p1_done_placing && g->p2_done_placing)
         {
@@ -1038,10 +1106,12 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
             g->p1_ai_done_placing_rounds = false;
             break;
         }
+
         float mult1 = GetRewardMultiplier(g->p1_completed_ranks);
         float mult2 = GetRewardMultiplier(g->p2_completed_ranks);
         float reward1 = REWARD_PLACEMENT * mult1;
         float reward2 = REWARD_PLACEMENT * mult2;
+
         // P1 Human Placement
         if (!IsPlayerAI(g, 1) && !g->p1_done_placing)
         {
@@ -1061,6 +1131,7 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                                 for (int s_check = 0; s_check < 3; s_check++)
                                     if (g->p1_slots[k][s_check].is_valid)
                                         cards_before++;
+
                                 if (cards_before < 3)
                                 {
                                     for (int s = 0; s < 3; s++)
@@ -1070,10 +1141,12 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                                             g->p1_slots[k][s] = c;
                                             g->p1_temp_credits += reward1;
                                             CheckRankCompletionBonus(g, 1, k, cards_before);
+
                                             // Remove from hand
                                             for (int j = i; j < g->p1_hand_size - 1; j++)
                                                 g->player1_hand[j] = g->player1_hand[j + 1];
                                             g->p1_hand_size--;
+
                                             // Draw new card
                                             g->player1_hand[g->p1_hand_size++] = DrawFromDeck(g);
                                             PlaySound(g_place_sound);
@@ -1088,6 +1161,7 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 }
             }
         }
+
         // P2 Human Placement
         if (!IsPlayerAI(g, 2) && !g->p2_done_placing)
         {
@@ -1107,6 +1181,7 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                                 for (int s_check = 0; s_check < 3; s_check++)
                                     if (g->p2_slots[k][s_check].is_valid)
                                         cards_before++;
+
                                 if (cards_before < 3)
                                 {
                                     for (int s = 0; s < 3; s++)
@@ -1116,10 +1191,12 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                                             g->p2_slots[k][s] = c;
                                             g->p2_temp_credits += reward2;
                                             CheckRankCompletionBonus(g, 2, k, cards_before);
+
                                             // Remove from hand
                                             for (int j = i; j < g->p2_hand_size - 1; j++)
                                                 g->player2_hand[j] = g->player2_hand[j + 1];
                                             g->p2_hand_size--;
+
                                             // Draw new card
                                             g->player2_hand[g->p2_hand_size++] = DrawFromDeck(g);
                                             PlaySound(g_place_sound);
@@ -1134,11 +1211,13 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 }
             }
         }
+
         // PASS BUTTON LOGIC
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         {
             Rectangle p1_pass = ContinueButtonRect(1);
             Rectangle p2_pass = ContinueButtonRect(2);
+
             if (!IsPlayerAI(g, 1) && !g->p1_done_placing && CheckCollisionPointRec(mouse, p1_pass))
             {
                 g->p1_done_placing = true;
@@ -1152,10 +1231,13 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 PlaySound(g_coin_sound);
             }
         }
+
         int gamepad = GetActiveGamepad();
+
         // Keyboard Shortcuts
-        bool p1_continue = IsKeyPressed(KEY_ONE) || (IsGamepadButtonPressedSDL(gamepad, 1));
+        bool p1_continue = IsKeyPressed(KEY_ONE) || (XboxBtnPressed(gamepad, 1));
         bool p2_continue = IsKeyPressed(KEY_TWO) || IsKeyPressed(KEY_KP_2);
+
         if (p1_continue && !g->p1_done_placing && !IsPlayerAI(g, 1))
         {
             g->p1_done_placing = true;
@@ -1168,8 +1250,9 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
             g->p2_temp_credits -= COST_PER_ROUND;
             PlaySound(g_coin_sound);
         }
+        break;
     }
-    break;
+
     case STATE_HAND_RESHUFFLE:
     {
         g->placement_phases_count++;
@@ -1183,58 +1266,56 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
             g->revealed_p2 = BlankCard();
             g->state = STATE_CHECK_WIN;
         }
+        break;
     }
-    break;
+
     case STATE_COVER_ANIMATION:
     {
-        Rectangle animSource = GetDealingAnimationRect();
-        PlaySound(g_shuffle_sound);
-        for (int i = 0; i < 5; i++)
+        g->Reshuffle_cover_timer += GetFrameTime();
+
+        if (g->Reshuffle_cover_timer >= 2.0f)
         {
-            float progress = 1.0f - (g->Reshuffle_cover_timer / 2.0f);
-            Rectangle dest = HandRect(1, i);
-            dest.y -= (1.0f - progress) * 500;
-            PlaySound(g_coin_sound);
-            DrawTexturePro(g_atlas_texture, animSource, dest, (Vector2){0, 0}, 0.0f, WHITE);
-            g->Reshuffle_cover_timer -= GetFrameTime();
-            if (g->Reshuffle_cover_timer <= 0)
-            {
-                RefreshHands(g);
-                g->revealed_p1 = BlankCard();
-                g->revealed_p2 = BlankCard();
-                g->state = STATE_CHECK_WIN;
-            }
+            RefreshHands(g);
+            g->revealed_p1 = BlankCard();
+            g->revealed_p2 = BlankCard();
+            g->Reshuffle_cover_timer = 0.0f;
+            g->state = STATE_CHECK_WIN;
+            PlaySound(g_shuffle_sound);
         }
+        break;
     }
-    break;
+
     case STATE_CHECK_WIN:
     {
         UpdateWinStats(g);
+
         // Check win condition (3 or more completed ranks)
         if (g->p1_completed_ranks >= 3 || g->p2_completed_ranks >= 3)
         {
             g->winner = (g->p1_completed_ranks >= 3) ? 1 : 2;
             g->game_over = true;
-            g->state = STATE_GAME_OVER;
             g->win_timer_start = GetTime();
+
             // Calculate final scores
             float winner_temp = (g->winner == 1) ? g->p1_temp_credits : g->p2_temp_credits;
             float loser_temp = (g->winner == 1) ? g->p2_temp_credits : g->p1_temp_credits;
             float winner_bonus = REWARD_MATCH * (float)g->total_rounds;
+
             g->final_score_p1 = (g->winner == 1) ? (winner_temp + winner_bonus) : (loser_temp - LOSER_PENALTY);
             g->final_score_p2 = (g->winner == 2) ? (winner_temp + winner_bonus) : (loser_temp - LOSER_PENALTY);
+
             // Update account credits based on mode
             if (g->mode == MODE_PVP)
             {
                 // Friendly match, no credit updates, no stats
             }
-            else if (g->mode == MODE_AIVAI)
+            else if (g->mode == MODE_AIVAI && !g->accounts->active_bet)
             {
-                // Friendly match, no credit updates, no stats
+                // Friendly AI match, no updates
             }
             else if (g->mode == MODE_PVAI)
             {
-                // Update P1 account
+                // Update P1 account (human player)
                 if (core->p1_account_index >= 0)
                 {
                     double net_change;
@@ -1251,42 +1332,83 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                         core->accounts[core->p1_account_index].losses++;
                     }
                     core->accounts[core->p1_account_index].tokens += 1.0;
-                    // FIX #3: Update stats for achievements (only for human players)
+
                     if (!core->accounts[core->p1_account_index].is_ai)
                     {
                         UpdateGameStats(core, core->p1_account_index, GAME_JOKERS_GAMBIT, net_change);
                     }
                 }
-                // Update P2 account
+
+                // Update AI opponent account (simplified - no stats tracking)
                 if (core->p2_account_index >= 0)
                 {
-                    double net_change;
                     if (g->winner == 2)
                     {
-                        net_change = (double)(winner_temp + winner_bonus - P2_TEMP_CREDITS_START);
                         core->accounts[core->p2_account_index].credits += (double)(winner_temp + winner_bonus);
                         core->accounts[core->p2_account_index].wins++;
                     }
                     else
                     {
-                        net_change = (double)(loser_temp - LOSER_PENALTY - P2_TEMP_CREDITS_START);
                         core->accounts[core->p2_account_index].credits += (double)(loser_temp - LOSER_PENALTY);
                         core->accounts[core->p2_account_index].losses++;
                     }
                     core->accounts[core->p2_account_index].tokens += 1.0;
-                    // FIX #3: Update stats for achievements (only for human players)
-                    if (!core->accounts[core->p2_account_index].is_ai)
-                    {
-                        UpdateGameStats(core, core->p2_account_index, GAME_JOKERS_GAMBIT, net_change);
-                    }
+                    // No stats tracking for AI opponents
                 }
-                // FIX #1: Save accounts immediately after updating
-                SaveAllAccounts(core);
-                SaveAchievements(core);
             }
+
+            else if (g->mode == MODE_BETTING)
+            {
+                // Calculate betting payout (ONLY HERE, not in STATE_GAME_OVER)
+                double payout_odds[][2] = {
+                    {1.43, 3.33},  // FLINT vs THEA (THEA win, FLINT win)
+                    {1.11, 10.00}, // BOB vs FLINT
+                    {1.67, 2.50},  // THEA vs BOB
+                    {5.00, 5.00}   // RANDOM
+                };
+
+                int matchup = core->betting.selected_matchup;
+                double multiplier = (g->winner == 1) ? payout_odds[matchup][1] : payout_odds[matchup][0];
+
+                bool player_won = false;
+                double winnings = 0;
+
+                if (g->winner == core->betting.bet_on_player)
+                {
+                    double bet_amount = (core->betting.bet_on_player == 1) ? core->betting.p1_bet_amount : core->betting.p2_bet_amount;
+                    winnings = bet_amount * multiplier;
+                    player_won = true;
+                }
+
+                if (player_won && core->betting.original_player >= 0)
+                {
+                    core->accounts[core->betting.original_player].tokens += winnings;
+                    core->betting.net_profit = winnings - (core->betting.p1_bet_amount + core->betting.p2_bet_amount);
+                    core->betting.payout_multiplier = multiplier;
+                    core->betting.player_won_bet = true;
+                    ShowNotification(core, "BET WON!", TextFormat("You won %.0f tokens!", winnings));
+                }
+                else
+                {
+                    core->betting.player_won_bet = false;
+                    core->betting.net_profit = -(core->betting.p1_bet_amount + core->betting.p2_bet_amount);
+                    ShowNotification(core, "BET LOST", "Better luck next time!");
+                }
+
+                // Clear betting flag
+                if (core->betting.original_player >= 0)
+                {
+                    core->accounts[core->betting.original_player].active_bet = false;
+                }
+            }
+
+            SaveAllAccounts(core);
+            SaveAchievements(core);
             UpdateAccountCredits(core);
             AddLeaderboardEntry(core, g->winner);
             PlaySound(g_win_sound);
+
+            g->state = STATE_GAME_OVER;
         }
         else
         {
@@ -1295,172 +1417,194 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
             g->revealed_p2 = BlankCard();
             g->state = STATE_P1_SELECT_DISCARD;
         }
+        break;
     }
-    break;
+
     case STATE_GAME_OVER:
-    {
-        // In STATE_GAME_OVER case of UpdateJokersGambit:
-        if (g->mode == MODE_BETTING && core->betting.bet_placed)
-        {
-            // Calculate payout
-            double payout_odds[][2] = {
-                {1.43, 3.33},  // FLINT vs THEA (THEA win, FLINT win)
-                {1.11, 10.00}, // BOB vs FLINT
-                {1.67, 2.50},  // THEA vs BOB
-                {5.00, 5.00}   // RANDOM
-            };
+        // No update logic needed here - handled at top of function
+        break;
 
-            int matchup = core->betting.selected_matchup;
-            double multiplier = (g->winner == 1) ? payout_odds[matchup][1] : payout_odds[matchup][0];
-
-            bool player_won = false;
-            double winnings = 0;
-
-            if (g->winner == 1 && core->betting.p1_bet_amount > 0)
-            {
-                winnings = core->betting.p1_bet_amount * multiplier;
-                player_won = true;
-            }
-            else if (g->winner == 2 && core->betting.p2_bet_amount > 0)
-            {
-                winnings = core->betting.p2_bet_amount * multiplier;
-                player_won = true;
-            }
-
-            if (player_won && core->p1_account_index >= 0)
-            {
-                core->accounts[core->p1_account_index].tokens += winnings;
-                core->betting.net_profit = winnings - (core->betting.p1_bet_amount + core->betting.p2_bet_amount);
-                ShowNotification(core, "BET WON!", TextFormat("You won %.0f tokens!", winnings));
-                SaveAllAccounts(core);
-            }
-        }
-        if (IsKeyPressed(KEY_R))
-        {
-            if (g->mode == MODE_PVAI)
-            {
-                int human_idx = IsPlayerAI(g, 1) ? g->p2_account_index : g->p1_account_index;
-                if (human_idx >= 0 && g->accounts[human_idx].credits >= CREDIT_COST_RESTART)
-                    g->accounts[human_idx].credits -= CREDIT_COST_RESTART;
-            }
-            SaveAllAccounts(core);
-            RestartGameKeepingAccounts(core);
-            g->state = STATE_P1_SELECT_DISCARD;
-        }
-    }
-    break;
     case STATE_P2_SELECT_DISCARD:
     case STATE_ROUNDS_COMPLETED:
-        break;
     default:
         break;
     }
 }
+
+ 
+void StartPVPGame(LobbyState *g)
+{
+    // Set mode
+    g->game_state->mode = MODE_PVP;
+
+    // Initialize game
+    InitGame(g);
+
+    // Show notification if split-screen selected
+    if (g->pvp_multiplayer)
+    {
+        ShowNotification(g, "SPLIT-SCREEN MODE", "Each player sees their own view!");
+    }
+
+    // Start game
+    SwitchState(g, STATE_JOKERS_GAMBIT);
+}
 void DrawJokersGambit(const LobbyState *core)
 {
     const GameState *g = core->game_state;
-    // Draw background
-    if (g_background_texture.id != 0)
-    {
-        DrawTexturePro(g_background_texture,
-                       (Rectangle){0, 0, (float)g_background_texture.width, (float)g_background_texture.height},
-                       (Rectangle){0, 0, SCREEN_W, SCREEN_H},
-                       (Vector2){0, 0}, 0.0f, WHITE);
-    }
-    else
-    {
-        ClearBackground((Color){20, 30, 40, 255});
-    }
+
     if (g->game_over)
     {
+        // Game over screen (full screen)
         DrawGameOver((LobbyState *)core, (GameState *)g);
+        return;
+    }
+
+    // Check if we're in split-screen mode
+    if (g->mode == MODE_PVP && core->pvp_multiplayer)
+    {
+        // === SPLIT-SCREEN MODE ===
+        float half_width = SCREEN_W / 2.0f;
+
+        // Clear entire screen first
+        ClearBackground(BLACK);
+
+        // Draw P1 view on LEFT half
+        BeginScissorMode(0, 0, (int)half_width, (int)SCREEN_H);
+         EndScissorMode();
+
+        // Draw P2 view on RIGHT half
+        BeginScissorMode((int)half_width, 0, (int)half_width, (int)SCREEN_H);
+         EndScissorMode();
+
+        // Draw divider line
+        DrawRectangle((int)half_width - 2, 0, 4, (int)SCREEN_H, GOLD);
+
+        // Draw player labels
+        DrawText("PLAYER 1", 40, 30, 40, SKYBLUE);
+        DrawText("PLAYER 2", (int)half_width + 40, 30, 40, ORANGE);
     }
     else
     {
+        // === NORMAL SINGLE-VIEW MODE ===
+        if (g_background_texture.id != 0)
+        {
+            DrawTexturePro(g_background_texture,
+                           (Rectangle){0, 0, (float)g_background_texture.width, (float)g_background_texture.height},
+                           (Rectangle){0, 0, SCREEN_W, SCREEN_H},
+                           (Vector2){0, 0}, 0.0f, WHITE);
+        }
+        else
+        {
+            ClearBackground((Color){20, 30, 40, 255});
+        }
+
         DrawGameLayout((LobbyState *)core, g);
     }
 }
-void UpdateDiscardSelection(GameState *g, Vector2 mouse)
+
+void UpdateDiscardSelection(GameState *g, Vector2 mouse) // UNDER CONSTRUCTION XXX
 {
-    int gamepad = GetActiveGamepad();
-    // Handle AI discard selection
-    if (!g->p1_selected && IsPlayerAI(g, 1))
+    if (g->mode == MODE_PVP)
     {
-        AI_SelectDiscard(g, 1);
-    }
-    if (!g->p2_selected && IsPlayerAI(g, 2))
-    {
-        AI_SelectDiscard(g, 2);
-    }
-    // Handle human P1 input
-    if (!IsPlayerAI(g, 1) && !g->p1_discard_ready)
-    {
-        for (int i = 0; i < g->p1_hand_size; i++)
+        if (!IsPlayerAI(g, 1) && !g->p1_discard_ready)
         {
-            Rectangle btn = ButtonRect(1, i);
-            // Mouse input
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, btn))
+            for (int i = 0; i < g->p1_hand_size; i++)
             {
-                g->p1_discard_idx = i;
-                g->p1_discard_ready = true;
-                g->p1_selected = true;
-                PlaySound(g_discard_sound);
-            }
-            // Keyboard input (1-5 keys)
-            if (IsKeyPressed(KEY_ONE + i))
-            {
-                g->p1_discard_idx = i;
-                g->p1_discard_ready = true;
-                g->p1_selected = true;
-                PlaySound(g_discard_sound);
+                Rectangle btn = ButtonRect(1, i);
+                // Mouse input
+                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, btn))
+                {
+                    g->p1_discard_idx = i;
+                    g->p1_discard_ready = true;
+                    g->p1_selected = true;
+                    PlaySound(g_discard_sound);
+                }
+                // Keyboard input (1-5 keys)
+                if (IsKeyPressed(KEY_ONE + i))
+                {
+                    g->p1_discard_idx = i;
+                    g->p1_discard_ready = true;
+                    g->p1_selected = true;
+                    PlaySound(g_discard_sound);
+                }
             }
         }
-        // Gamepad input
-        if (gamepad >= 0 && IsGamepadButtonPressedSDL(gamepad, 0))
+        // Handle human P2 input PVP
+        if (!IsPlayerAI(g, 2) && !g->p2_discard_ready)
         {
-            // Select current highlighted card (implement highlight logic needed)
-            g->p1_discard_idx = 0; // Default to first card for now
-            g->p1_discard_ready = true;
-            g->p1_selected = true;
-            PlaySound(g_discard_sound);
-        }
-    }
-    // Handle human P2 input (if not AI)
-    if (!IsPlayerAI(g, 2) && !g->p2_discard_ready)
-    {
-        for (int i = 0; i < g->p2_hand_size; i++)
-        {
-            Rectangle btn = ButtonRect(2, i);
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, btn))
+            for (int i = 0; i < g->p2_hand_size; i++)
             {
-                g->p2_discard_idx = i;
-                g->p2_discard_ready = true;
-                g->p2_selected = true;
-                PlaySound(g_discard_sound);
+                Rectangle btn = ButtonRect(2, i);
+                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, btn))
+                {
+                    g->p2_discard_idx = i;
+                    g->p2_discard_ready = true;
+                    g->p2_selected = true;
+                    PlaySound(g_discard_sound);
+                }
             }
         }
     }
-    // Check if both players are ready
-    if (g->p1_selected && g->p2_selected)
+    if (g->mode == MODE_PVAI)
     {
-        // Reveal cards
-        g->revealed_p1 = g->player1_hand[g->p1_discard_idx];
-        g->revealed_p2 = g->player2_hand[g->p2_discard_idx];
-        // Remove from hands
-        for (int j = g->p1_discard_idx; j < g->p1_hand_size - 1; j++)
-            g->player1_hand[j] = g->player1_hand[j + 1];
-        g->p1_hand_size--;
-        for (int j = g->p2_discard_idx; j < g->p2_hand_size - 1; j++)
-            g->player2_hand[j] = g->player2_hand[j + 1];
-        g->p2_hand_size--;
-        PlaySound(g_reveal_sound);
-        // Process discards and move to placement phase
-        ResolveDiscards(g);
-        g->state = STATE_WAIT_FOR_TURN;
-        g->p1_selected = false;
-        g->p2_selected = false;
-        g->p1_discard_ready = false;
-        g->p2_discard_ready = false;
+        if (!IsPlayerAI(g, 1) && !g->p1_discard_ready)
+        {
+            for (int i = 0; i < g->p1_hand_size; i++)
+            {
+                Rectangle btn = ButtonRect(1, i);
+                // Mouse input
+                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, btn))
+                {
+                    g->p1_discard_idx = i;
+                    g->p1_discard_ready = true;
+                    g->p1_selected = true;
+                    PlaySound(g_discard_sound);
+                }
+                // Keyboard input (1-5 keys)
+                if (IsKeyPressed(KEY_ONE + i))
+                {
+                    g->p1_discard_idx = i;
+                    g->p1_discard_ready = true;
+                    g->p1_selected = true;
+                    PlaySound(g_discard_sound);
+                }
+            }
+        }
+        if (!g->p2_selected && IsPlayerAI(g, 2))
+        {
+            AI_SelectDiscard(g, 2);
+        }
+        if (g->mode == MODE_AIVAI || g->mode == MODE_BETTING)
+            if (!g->p1_selected && IsPlayerAI(g, 1))
+            {
+                AI_SelectDiscard(g, 1);
+            }
+        if (!g->p2_selected && IsPlayerAI(g, 2))
+        {
+            AI_SelectDiscard(g, 2);
+        }
+        if (g->p1_selected && g->p2_selected)
+        {
+            // Reveal cards
+            g->revealed_p1 = g->player1_hand[g->p1_discard_idx];
+            g->revealed_p2 = g->player2_hand[g->p2_discard_idx];
+            // Remove from hands
+            for (int j = g->p1_discard_idx; j < g->p1_hand_size - 1; j++)
+                g->player1_hand[j] = g->player1_hand[j + 1];
+            g->p1_hand_size--;
+            for (int j = g->p2_discard_idx; j < g->p2_hand_size - 1; j++)
+                g->player2_hand[j] = g->player2_hand[j + 1];
+            g->p2_hand_size--;
+            PlaySound(g_reveal_sound);
+            // Process discards and move to placement phase
+            ResolveDiscards(g);
+            g->state = STATE_WAIT_FOR_TURN;
+            g->p1_selected = false;
+            g->p2_selected = false;
+            g->p1_discard_ready = false;
+            g->p2_discard_ready = false;
+        }
     }
 }
 void UpdatePlacementPhase(GameState *g, Vector2 mouse)
@@ -1541,10 +1685,43 @@ void CheckWinCondition(GameState *g, LobbyState *core)
             SaveAchievements(core);
             UpdateAccountCredits(core);
         }
+        else if (g->mode == MODE_BETTING)
+        {
+            int original_idx = core->betting.original_player;
+            if (original_idx >= 0)
+            {
+                bool won = (core->betting.bet_on_player == g->winner);
+                double bet_amount = (core->betting.bet_on_player == 1 ? core->betting.p1_bet_amount : core->betting.p2_bet_amount);
+                if (won)
+                {
+                    // Assuming 2x payout for simplicity; adjust as needed
+                    double multiplier = 2.0;
+                    double payout = bet_amount * multiplier;
+                    core->accounts[original_idx].tokens += payout;
+                    ShowNotification(core, "YOU WON THE BET!", TextFormat("+%.0f TOKENS", payout));
+                    core->betting.player_won_bet = true;
+                    core->betting.net_profit = payout - bet_amount;
+                    core->betting.payout_multiplier = multiplier;
+                }
+                else
+                {
+                    ShowNotification(core, "BET LOST", "Better luck next time!");
+                    core->betting.player_won_bet = false;
+                    core->betting.net_profit = -bet_amount;
+                }
+                // Update stats if desired
+                SaveAllAccounts(core);
+            }
+            // Logout AIs and restore original player
+            LogoutAccount(core, 1);
+            LogoutAccount(core, 2);
+            LoginAccount(core, original_idx, 1);
+            core->accounts[original_idx].active_bet = false; // Clear flag
+        }
         // Auto-logout P2 after game ends (PVP or AI modes)
         if (g->mode == MODE_PVP || g->mode == MODE_AIVAI)
         {
-            AutoLogoutP2(core);
+            AutoLogout(core);
         }
         g->game_over = true;
         PlaySound(g_win_sound);
@@ -1563,23 +1740,4 @@ bool IsPlayerAI(const GameState *g, int player)
     if (account_idx < 0 || account_idx >= g->account_count)
         return false;
     return g->accounts[account_idx].is_ai;
-}
-void UpdateDiscardPhaseWithGamepad(GameState *g)
-{
-    int gamepad = GetActiveGamepad();
-    
-    // P1 gamepad navigation
-    if (!IsPlayerAI(g, 1) && !g->p1_discard_ready) {
-        if (IsGamepadButtonPressedSDL(gamepad, 13)) { // D-pad Left
-            g->p1_discard_cursor = (g->p1_discard_cursor - 1 + g->p1_hand_size) % g->p1_hand_size;
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 14)) { // D-pad Right
-            g->p1_discard_cursor = (g->p1_discard_cursor + 1) % g->p1_hand_size;
-        }
-        if (IsGamepadButtonPressedSDL(gamepad, 0)) { // A button - confirm
-            g->p1_discard_idx = g->p1_discard_cursor;
-            g->p1_discard_ready = true;
-            PlaySound(g_discard_sound);
-        }
-    }
 }

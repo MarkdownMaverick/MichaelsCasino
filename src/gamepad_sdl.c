@@ -1,4 +1,8 @@
 #include "gamepad_sdl.h"
+#define P1_PAD 0
+#define P2_PAD 1
+
+
 static GamepadSDL gamepads[MAX_GAMEPADS] = {0};
 static bool sdl_initialized = false;
 // Initialize SDL gamepad system
@@ -97,7 +101,7 @@ bool IsGamepadButtonDownSDL(int gamepad, int button)
     return SDL_GameControllerGetButton(gamepads[gamepad].controller, sdl_button) != 0;
 }
 // Button pressed (edge detection - true only on the frame the button was pressed)
-bool IsGamepadButtonPressedSDL(int gamepad, int button)
+bool XboxBtnPressed(int gamepad, int button)
 {
     if (!IsGamepadAvailableSDL(gamepad))
         return false;

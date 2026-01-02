@@ -15,29 +15,23 @@ const char *GetPlayerNameByIndex(const LobbyState *g, int idx)
                  g->accounts[idx].first_name);
     return name_buffer;
 }
-
 void InitAchievements(Account *acc)
 {
     // We now use the global definitions (g_achievement_defs)
-    // instead of hardcoding strings here again.
-
     for (int i = 0; i < MAX_ACHIEVEMENTS; i++)
     {
         // Copy data from the global definition registry
         strncpy(acc->achievements[i].name, g_achievement_defs[i].name, ACHIEVEMENT_NAME_LEN);
         strncpy(acc->achievements[i].description, g_achievement_defs[i].description, ACHIEVEMENT_DESC_LEN);
-
         // Default to locked (LoadAllAccounts will overwrite this if a save exists)
         acc->achievements[i].unlocked = false;
     }
 }
-
-// Call this whenever a game ends
+// For achievement tracking , not called in every game mode
 void UpdateGameStats(LobbyState *g, int account_index, GameType game, double win_amount)
 {
     if (!g || account_index < 0 || account_index >= g->account_count)
         return;
-
     Account *acc = &g->accounts[account_index];
     if (!acc)
         return;
@@ -86,10 +80,8 @@ void UpdateGameStats(LobbyState *g, int account_index, GameType game, double win
     CheckAchievements(acc, g);
     SaveAllAccounts(g);
 }
-
-void CheckAchievements(Account *acc, LobbyState *g) // Note: removed 'const' from LobbyState* g because we modify it
+void CheckAchievements(Account *acc, LobbyState *g)
 {
-// New Macro: Unlocks AND triggers the notification
 #define CHECK(idx, condition)                                                          \
     if (!acc->achievements[idx].unlocked && (condition))                               \
     {                                                                                  \
@@ -97,12 +89,9 @@ void CheckAchievements(Account *acc, LobbyState *g) // Note: removed 'const' fro
         if (g != NULL && !acc->is_ai)                                                  \
         {                                                                              \
             ShowNotification(g, "ACHIEVEMENT UNLOCKED!", acc->achievements[idx].name); \
-            PlaySound(g_coin_sound); /* Or a specific achievement sound */             \
+            PlaySound(g_coin_sound);                                                   \
         }                                                                              \
     }
-
-    // ... (The rest of the function remains the same) ...
-
     // General Play
     CHECK(0, acc->stats.total_games_played >= 10);
     CHECK(1, acc->stats.total_games_played >= 100);
@@ -202,7 +191,6 @@ bool IsNameValid(const char *name)
     }
     return true;
 }
-
 void InitGlobalAchievementDefs(void)
 {
     // Achievement names
@@ -389,8 +377,8 @@ void InitPlayerAccounts(LobbyState *g) // UPDATE InitPlayerAccounts to zero the 
 {
     strcpy(g->accounts[3].first_name, "Player1"); // Player Account 1
     strcpy(g->accounts[3].last_name, "One");
-    g->accounts[3].credits = 10000.0;
-    g->accounts[3].tokens = 0.0;
+    g->accounts[3].credits = 1000000.0;
+    g->accounts[3].tokens = 10000.0;
     g->accounts[3].wins = 0;
     g->accounts[3].losses = 0;
     g->accounts[3].is_ai = false;
@@ -404,7 +392,7 @@ void InitPlayerAccounts(LobbyState *g) // UPDATE InitPlayerAccounts to zero the 
     strcpy(g->accounts[4].first_name, "Player2"); // Player Account 2
     strcpy(g->accounts[4].last_name, "Two");
     g->accounts[4].credits = 10000.0;
-    g->accounts[4].tokens = 0.0;
+    g->accounts[4].tokens = 100.0;
     g->accounts[4].wins = 0;
     g->accounts[4].losses = 0;
     g->accounts[4].is_ai = false;
@@ -417,7 +405,6 @@ void InitPlayerAccounts(LobbyState *g) // UPDATE InitPlayerAccounts to zero the 
     InitAchievements(&g->accounts[4]);
     g->account_count = 5;
 }
-
 void SaveAllAccounts(const LobbyState *g)
 {
     cJSON *root = cJSON_CreateObject();
@@ -483,7 +470,6 @@ void SaveAllAccounts(const LobbyState *g)
     free(json_string);
     cJSON_Delete(root);
 }
-
 void LoadAllAccounts(LobbyState *g)
 {
     FILE *fp = fopen(ACCOUNTS_FILE, "r");
@@ -664,7 +650,6 @@ void LoadLeaderboard(LobbyState *g)
             cJSON *credits = cJSON_GetObjectItem(entry, "final_credits");
             cJSON *bonus = cJSON_GetObjectItem(entry, "bonus");
             cJSON *rounds = cJSON_GetObjectItem(entry, "total_rounds");
-            cJSON *moves = cJSON_GetObjectItem(entry, "moves_made");
             cJSON *game = cJSON_GetObjectItem(entry, "game_played");
             cJSON *entry_name = cJSON_GetObjectItem(entry, "entry_name");
             cJSON *winner = cJSON_GetObjectItem(entry, "winner_name");
@@ -677,8 +662,6 @@ void LoadLeaderboard(LobbyState *g)
                 g->leaderboard[count].bonus = (float)bonus->valuedouble;
             if (cJSON_IsNumber(rounds))
                 g->leaderboard[count].total_rounds = rounds->valueint;
-            if (cJSON_IsNumber(moves))
-                g->leaderboard[count].moves_made = moves->valueint;
             if (cJSON_IsNumber(game))
                 g->leaderboard[count].game_played = (GameType)game->valueint;
             if (cJSON_IsString(entry_name))
@@ -707,7 +690,6 @@ void SaveLeaderboard(const LobbyState *g)
         cJSON_AddNumberToObject(entry, "final_credits", g->leaderboard[i].final_credits);
         cJSON_AddNumberToObject(entry, "bonus", g->leaderboard[i].bonus);
         cJSON_AddNumberToObject(entry, "total_rounds", g->leaderboard[i].total_rounds);
-        cJSON_AddNumberToObject(entry, "moves_made", g->leaderboard[i].moves_made);
         cJSON_AddNumberToObject(entry, "game_played", (int)g->leaderboard[i].game_played);
         cJSON_AddStringToObject(entry, "entry_name", g->leaderboard[i].entry_name);
         cJSON_AddStringToObject(entry, "winner_name", g->leaderboard[i].winner_name);
@@ -1000,20 +982,4 @@ void SaveSettings(const LobbyState *g)
     }
     free(json_string);
     cJSON_Delete(root);
-}
-void AutoLogoutP2(LobbyState *g)
-{
-    if (g->p2_account_index >= 0)
-    {
-        printf("[AUTO-LOGOUT] Logging out P2: %s\n", 
-               GetPlayerName(g, 2));
-        LogoutAccount(g, 2);
-    }
-    if (g->game_state->mode == MODE_AIVAI) // This is to autolog the ai out of P1
-    {   
-        printf("[AUTO-LOGOUT] Logging out Ai: %s\n", 
-        GetPlayerName(g, 1));
-        LogoutAccount(g, 1);
-    }
-    
 }

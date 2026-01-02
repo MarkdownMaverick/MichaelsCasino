@@ -9,7 +9,6 @@ void UpdateMainMenu(LobbyState *g, Vector2 mouse);
 void DrawLobby(const LobbyState *g);
 void UpdateLobby(LobbyState *g, Vector2 mouse);
 void SwitchState(LobbyState *g, UIState newState);
-
 // Settings
 void DrawSettings(const LobbyState *g);
 void UpdateSettings(LobbyState *g, Vector2 mouse);
@@ -28,12 +27,20 @@ void DrawAchievements(const LobbyState *g);
 void UpdateAchievements(LobbyState *g, Vector2 mouse);
 void ShowNotification(LobbyState *g, const char *title, const char *subtitle);
 void DrawNotification(LobbyState *g);
-
 void DrawModeSelection(const LobbyState *g);
 void UpdateModeSelection(LobbyState *g, Vector2 mouse);
 void DrawAISelection(const LobbyState *g);
 void UpdateAISelection(LobbyState *g, Vector2 mouse);
-// Add these to mainmenu.h
+void UpdatePVPSetupP1(LobbyState *g);
+void DrawPVPSetupP1(const LobbyState *g);
+void DrawPVPSetupP2(const LobbyState *g);
+
+void DrawMultiplayerMode(const LobbyState *g);
+void UpdateMultiplayer(LobbyState *g);
+void DrawOnlineChoice(const LobbyState *g);
+void UpdateOnlineChoice(LobbyState *g);
+void UpdatePVPSetupP2(LobbyState *core);
+
 void DrawBettingSetup(const LobbyState *g);
 void UpdateBettingSetup(LobbyState *g, Vector2 mouse);
 void SetupBettingMatch(LobbyState *g);

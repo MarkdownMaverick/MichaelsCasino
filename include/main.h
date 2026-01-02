@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
-
 // Forward declare GameState to avoid circular dependency
 typedef struct GameState GameState;
 // UI Layout constants - Now dynamic
@@ -38,6 +37,29 @@ extern float CENTER_X;
 #ifndef CLAMP
 #define CLAMP(val, min, max) ((val) < (min) ? (min) : ((val) > (max) ? (max) : (val)))
 #endif
+// --- NETWORK STRUCTURES ---
+typedef enum
+{
+    NET_NONE,
+    NET_HOST,
+    NET_CLIENT
+} NetworkRole;
+
+typedef enum
+{
+    PKT_HANDSHAKE,
+    PKT_SEED,    // Host sends RNG seed to client
+    PKT_DISCARD, // Send discard index
+    PKT_PLACE,   // Send placement hand index
+    PKT_PASS,    // Pass turn
+    PKT_RESTART
+} PacketType;
+
+typedef struct
+{
+    PacketType type;
+    int data; // Generic data (card index, seed, etc.)
+} NetPacket;
 // Window scale options
 typedef enum
 {
@@ -101,9 +123,13 @@ typedef enum
     STATE_MODE_SELECTION, // NEW
     STATE_AI_SELECTION,   // NEW
     STATE_AI_P2_SELECTION,
-    STATE_JOKERS_GAMBIT,   // NEW
+    STATE_JOKERS_GAMBIT, // NEW
     STATE_BETTING_SETUP,
-    STATE_SLOT_REELS
+    STATE_SLOT_REELS,
+    STATE_PVP_SETUP_P1,
+    STATE_PVP_SETUP_P2,
+    MULTIPLAYER,
+    STATE_ONLINE_CHOICE
 } UIState;
 typedef struct
 {
@@ -162,6 +188,7 @@ typedef struct
     bool is_logged_in;
     MEMBERSTATUS member_status;
     bool has_insurance;
+    bool active_bet;
 } Account;
 // Leaderboard Entry
 typedef struct
@@ -170,13 +197,13 @@ typedef struct
     float final_credits;
     float bonus;
     int total_rounds;
-    int moves_made;
     GameType game_played;
     char entry_name[MAX_LEADERBOARD_ENTRY_NAME_LEN];
     char winner_name[MAX_LEADERBOARD_WINNER_NAME_LEN];
     char timestamp[MAX_LEADERBOARD_TIMESTAMP_LEN];
 } LeaderboardEntry;
-typedef struct BettingState {
+typedef struct BettingState
+{
     double p1_bet_amount;
     double p2_bet_amount;
     int selected_matchup; // 0=FLINT vs THEA, 1=BOB vs FLINT, 2=THEA vs BOB, 3=RANDOM
@@ -185,6 +212,7 @@ typedef struct BettingState {
     double net_profit;
     bool player_won_bet;
     int bet_on_player; // 1 or 2
+    int original_player;
 } BettingState;
 // Main Game State
 typedef struct
@@ -230,16 +258,23 @@ typedef struct
     char notification_subtext[64]; // Optional subtext (e.g. "Achievement Unlocked!")
     double notification_timer;     // How long to show it
     float notification_y_offset;   // For sliding animation
-    // New to control account login/out for ai
+    // Control account login/out for ai
     AIType selected_p1_ai;
     AIType selected_p2_ai;
-    // ===== CRITICAL: ADD THIS LINE =====
     GameState *game_state; // Embedded game state for Joker's Gambit
     BettingState betting;
-
-
+    bool pvp_dual_window; // Set in mode selection if 2 pads detected + user chooses
+    int p1_input_device;  // 0 = keyboard/mouse, 1 = controller 0
+    int p2_input_device;  // 0 = keyboard/mouse, 1 = controller 1
+    bool pvp_multiplayer; // false = single, true = dual
+    bool is_host;
+    // Network State
+    NetworkRole net_role;
+    bool net_connected;
+    int net_socket;        // Socket handle
+    unsigned int rng_seed; // Seed to sync decks
+    double net_timeout;
 } LobbyState;
-
 MEMBERSTATUS CalculateMemberStatus(double credits, double tokens);
 int GetActiveGamepad(void);
 void DebugControllerInput(void);

@@ -22,11 +22,10 @@ void UpdateAccountCredits(LobbyState *g);
 bool IsAlpha(int c);
 const char *GetMemberStatusString(MEMBERSTATUS status);
 void UpdateGameStats(LobbyState *g, int account_index, GameType game, double win_amount);
-
 void InitAchievements(Account *acc);
 void LoadAchievements(LobbyState *g);
 void SaveAchievements(const LobbyState *g);
 void CheckAchievements(Account *acc, LobbyState *g);
-void InitGlobalAchievementDefs(void); 
-void AutoLogoutP2(LobbyState *g);
+void InitGlobalAchievementDefs(void);
+void AutoLogout(LobbyState *g);
 #endif // USERACCOUNT_H

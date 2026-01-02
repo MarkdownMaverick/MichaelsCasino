@@ -6,3 +6,7 @@ obj/useraccount.o
 accounts.json
 leaderboard.json
 sfx/track.mp3
+obj/slotreels.o
+obj/jokersgambit.o
+obj/aibots.o
+obj/multiplayer.o

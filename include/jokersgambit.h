@@ -1,7 +1,9 @@
 #ifndef JOKERSGAMBIT_H
 #define JOKERSGAMBIT_H
+
 #include "main.h"
 #include "useraccount.h"
+#include <stdint.h>
 // UI Layout constants
 #define KEYCARD_COL_X (SCREEN_W * 0.469f) // 900/1920 ≈ 0.469
 #define GRID_START_Y (SCREEN_H * 0.0185f) // 20/1080 ≈ 0.0185
@@ -44,6 +46,7 @@
 #define ATLAS_TOTAL_WIDTH 2600
 #define ATLAS_TOTAL_HEIGHT 1500
 #define EPSILON 0.0001f
+
 typedef struct
 {
     int row;
@@ -104,6 +107,7 @@ typedef enum
     MODE_AIVAI,
     MODE_BETTING
 } GameMode;
+
 struct GameState
 {
     Account accounts[MAX_ACCOUNTS];
@@ -157,12 +161,19 @@ struct GameState
     double win_timer_start;
     char account_status_message[128];
     double account_status_timer;
+    bool cover_p1_cards; // For P2 window (symmetric to cover_p2_cards)
     bool cover_p2_cards;
     bool confirm_restart;
     bool confirm_menu;
     int p1_discard_cursor; // 0-4 for hand navigation
     int p2_discard_cursor;
 };
+typedef struct
+{
+    uint8_t player; //
+    uint8_t type;   // 0=left, 1=right, 2=action(A/Space), 3=pass(B/C), 4=back
+    uint8_t cursor; // 0-4 for hand/discard
+} InputEvent;
 extern Texture2D g_background_texture;
 extern Texture2D g_ui_frame_texture;
 extern Texture2D g_button_texture;
@@ -223,7 +234,7 @@ void RefreshHands(GameState *g);
 void UpdateWinStats(GameState *g);
 void ReturnToDeck(GameState *g, Card c);
 void AddLeaderboardEntry(LobbyState *core, int winner);
-void UpdateDiscardPhaseWithGamepad(GameState *g);
-
 void UpdateScale(void);
+void StartPVPGame(LobbyState *g);
+// Network multiplayer
 #endif

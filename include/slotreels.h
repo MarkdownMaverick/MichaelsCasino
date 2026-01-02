@@ -3,7 +3,7 @@
 
 #include "raylib.h"
 #include "jokersgambit.h"     // For Rank, Suit, GetAtlasSourceRect, CARD_W_SCALED, etc.
-#include "gamepad_sdl.h"      // For IsGamepadButtonPressedSDL
+#include "gamepad_sdl.h"      // For XboxBtnPressed
 // Slot Reels Constants
 #define REELS_COUNT         5
 #define VISIBLE_SYMBOLS     3
