@@ -474,7 +474,29 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
         AutoLogout(core);
         SwitchState(core, STATE_MAIN_MENU);
     }
-    
+}
+void WhereDoiSit(LobbyState *g)
+{
+    // 1. Store the account index of the currently logged-in player (Host is usually P1)
+    int my_account = g->game_state->p1_account_index;
+
+    // 2. Move the account to Player 2 slot
+    g->game_state->p2_account_index = my_account;
+
+    // 3. Update Input Devices
+    // We disable P1's local input and enable P2's local input
+    g->p1_input_device = -1;
+    g->p2_input_device = 0; // 0 is typically Keyboard/Mouse
+
+    // 4. Clean up Player 1 slot
+    // We set P1 to -1 (No account) so the "Unknown" or "Opponent" logic can take over
+    g->game_state->p1_account_index = -1;
+
+    // 5. Set the network flag
+    // Since you are moving to P2, you are the Client/Guest
+    g->is_host = false;
+
+    TraceLog(LOG_INFO, "Player moved to P2 seat. Input redirected.");
 }
 void AutoLogout(LobbyState *g)
 {
@@ -992,7 +1014,7 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
         // Mouse input
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         {
-             if (CheckCollisionPointRec(mouse, menu_btn))
+            if (CheckCollisionPointRec(mouse, menu_btn))
             {
                 AutoLogout(core);
                 SwitchState(core, STATE_MAIN_MENU);
@@ -1431,7 +1453,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
     }
 }
 
- 
 void StartPVPGame(LobbyState *g)
 {
     // Set mode
@@ -1439,12 +1460,6 @@ void StartPVPGame(LobbyState *g)
 
     // Initialize game
     InitGame(g);
-
-    // Show notification if split-screen selected
-    if (g->pvp_multiplayer)
-    {
-        ShowNotification(g, "SPLIT-SCREEN MODE", "Each player sees their own view!");
-    }
 
     // Start game
     SwitchState(g, STATE_JOKERS_GAMBIT);
@@ -1459,34 +1474,8 @@ void DrawJokersGambit(const LobbyState *core)
         DrawGameOver((LobbyState *)core, (GameState *)g);
         return;
     }
-
-    // Check if we're in split-screen mode
-    if (g->mode == MODE_PVP && core->pvp_multiplayer)
-    {
-        // === SPLIT-SCREEN MODE ===
-        float half_width = SCREEN_W / 2.0f;
-
-        // Clear entire screen first
-        ClearBackground(BLACK);
-
-        // Draw P1 view on LEFT half
-        BeginScissorMode(0, 0, (int)half_width, (int)SCREEN_H);
-         EndScissorMode();
-
-        // Draw P2 view on RIGHT half
-        BeginScissorMode((int)half_width, 0, (int)half_width, (int)SCREEN_H);
-         EndScissorMode();
-
-        // Draw divider line
-        DrawRectangle((int)half_width - 2, 0, 4, (int)SCREEN_H, GOLD);
-
-        // Draw player labels
-        DrawText("PLAYER 1", 40, 30, 40, SKYBLUE);
-        DrawText("PLAYER 2", (int)half_width + 40, 30, 40, ORANGE);
-    }
     else
     {
-        // === NORMAL SINGLE-VIEW MODE ===
         if (g_background_texture.id != 0)
         {
             DrawTexturePro(g_background_texture,
@@ -1505,6 +1494,7 @@ void DrawJokersGambit(const LobbyState *core)
 
 void UpdateDiscardSelection(GameState *g, Vector2 mouse) // UNDER CONSTRUCTION XXX
 {
+
     if (g->mode == MODE_PVP)
     {
         if (!IsPlayerAI(g, 1) && !g->p1_discard_ready)

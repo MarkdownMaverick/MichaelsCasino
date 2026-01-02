@@ -236,5 +236,5 @@ void ReturnToDeck(GameState *g, Card c);
 void AddLeaderboardEntry(LobbyState *core, int winner);
 void UpdateScale(void);
 void StartPVPGame(LobbyState *g);
-// Network multiplayer
+void WhereDoiSit(LobbyState *g);
 #endif

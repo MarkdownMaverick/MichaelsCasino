@@ -1610,8 +1610,8 @@ void UpdateOnlineChoice(LobbyState *g)
             {
                 g->is_host = false;
                 g->p1_input_device = -1; // Disable local P1 input
-                g->p2_input_device = 0;  // Laptop user controls P2
-
+                g->p2_input_device = 0;  // Client user controls P2
+                WhereDoiSit(g);          // Move Client user to P2 seat
                 SwitchState(g, STATE_JOKERS_GAMBIT);
                 InitGame(g);
             }
