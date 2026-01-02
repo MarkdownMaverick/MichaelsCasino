@@ -46,16 +46,29 @@ void SetNonBlocking(int sock)
 #endif
 }
 
-bool HostGame(LobbyState *g, int port)
+// NEW: Start hosting (non-blocking)
+bool StartHosting(LobbyState *g, int port)
 {
     SOCKET listen_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_sock == INVALID_SOCKET)
         return false;
 
+    // Make socket non-blocking immediately
+    SetNonBlocking((int)listen_sock);
+
+    // Allow port reuse
+#ifdef _WIN32
+    char optval = 1;
+    setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+#else
+    int optval = 1;
+    setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+#endif
+
     struct sockaddr_in server_addr = {0};
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons((uint16_t)port); // Fixed conversion warning
+    server_addr.sin_port = htons((uint16_t)port);
 
     if (bind(listen_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == SOCKET_ERROR)
     {
@@ -63,30 +76,72 @@ bool HostGame(LobbyState *g, int port)
         return false;
     }
 
-    listen(listen_sock, 1);
+    if (listen(listen_sock, 1) == SOCKET_ERROR)
+    {
+        closesocket(listen_sock);
+        return false;
+    }
 
-    printf("Waiting for client on port %d...\n", port);
+    g->net_listen_socket = (int)listen_sock;
+    g->net_role = NET_HOST;
+    
+    printf("Hosting on port %d (non-blocking)...\n", port);
+    return true;
+}
+
+// NEW: Check for incoming connection (call every frame)
+bool CheckForClient(LobbyState *g)
+{
+    if (g->net_listen_socket < 0)
+        return false;
 
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
-    SOCKET client_sock = accept(listen_sock, (struct sockaddr *)&client_addr, &client_len);
+    
+    SOCKET client_sock = accept(g->net_listen_socket, 
+                                (struct sockaddr *)&client_addr, 
+                                &client_len);
 
-    closesocket(listen_sock);
-
+    // Check if we got a connection
     if (client_sock == INVALID_SOCKET)
+    {
+#ifdef _WIN32
+        int err = WSAGetLastError();
+        if (err == WSAEWOULDBLOCK)
+            return false; // No connection yet, keep waiting
+#else
+        if (errno == EWOULDBLOCK || errno == EAGAIN)
+            return false; // No connection yet, keep waiting
+#endif
+        
+        // Real error
+        printf("Accept error\n");
+        closesocket(g->net_listen_socket);
+        g->net_listen_socket = -1;
         return false;
+    }
 
+    // Connection established!
+    printf("Client connected!\n");
+    
+    // Close listen socket (we only accept one client)
+    closesocket(g->net_listen_socket);
+    g->net_listen_socket = -1;
+    
+    // Make client socket non-blocking
     SetNonBlocking((int)client_sock);
-
+    
     g->net_socket = (int)client_sock;
     g->net_connected = true;
-    g->net_role = NET_HOST;
     g->rng_seed = (unsigned int)time(NULL);
-
+    
+    // Send seed to client
     SendPacket(g, PKT_SEED, (int)g->rng_seed);
-
+    
     return true;
 }
+
+
 
 bool ConnectToGame(LobbyState *g, const char *ip, int port)
 {

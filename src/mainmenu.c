@@ -1475,6 +1475,7 @@ void UpdatePVPSetupP2(LobbyState *g)
 // ---------------------------------------------------------------
 // MULTIPLAYER OR LOCAL PVP CHOICE
 // ---------------------------------------------------------------
+
 void DrawMultiplayerMode(const LobbyState *g)
 {
     (void)g;
@@ -1580,45 +1581,97 @@ void UpdateOnlineChoice(LobbyState *g)
         // Click Host
         if (CheckCollisionPointRec(mouse, host_rect))
         {
-            ShowNotification(g, "HOSTING", "Waiting for player...");
-            BeginDrawing();
-            ClearBackground(BLACK);
-            DrawText("Waiting for Player...", 100, 100, 40, WHITE);
-            EndDrawing();
-
             InitNetworkSystem();
-            if (HostGame(g, 7777))
+            if (StartHosting(g, 7777))
             {
                 g->is_host = true;
-                g->p1_input_device = 0;  // Host uses Keyboard/Mouse
-                g->p2_input_device = -1; // Disable local P2 input
-
-                SwitchState(g, STATE_JOKERS_GAMBIT);
-                InitGame(g);
+                g->p1_input_device = 0;  // Host uses Keyboard/Mouse for P1
+                g->p2_input_device = -1; // P2 is remote
+                g->game_state->mode = MODE_PVP;
+                
+                // Go to waiting screen instead of initializing game
+                SwitchState(g, STATE_HOSTING_WAITING);
+                ShowNotification(g, "HOSTING", "Waiting for player to connect...");
             }
             else
             {
-                ShowNotification(g, "ERROR", "Failed to host port 7777");
+                ShowNotification(g, "ERROR", "Failed to start hosting on port 7777");
             }
         }
         // Click Join
         else if (CheckCollisionPointRec(mouse, join_rect))
         {
             InitNetworkSystem();
-            // Hardcoded localhost for now
             if (ConnectToGame(g, "127.0.0.1", 7777))
             {
                 g->is_host = false;
-                g->p1_input_device = -1; // Disable local P1 input
-                g->p2_input_device = 0;  // Client user controls P2
-                WhereDoiSit(g);          // Move Client user to P2 seat
+                g->net_role = NET_CLIENT;
+                g->p1_input_device = -1; // P1 is remote (host)
+                g->p2_input_device = 0;  // Client controls P2
+
+                g->game_state->mode = MODE_PVP;
+                WhereDoiSit(g); // Move client to P2 seat
+
+                // Don't initialize yet - wait for seed from host
                 SwitchState(g, STATE_JOKERS_GAMBIT);
-                InitGame(g);
+                ShowNotification(g, "CONNECTED", "Joined game as P2!");
             }
             else
             {
-                ShowNotification(g, "ERROR", "Could not connect to localhost");
+                ShowNotification(g, "ERROR", "Could not connect to host");
             }
         }
+    }
+}
+void DrawHostingWaiting(const LobbyState *g)
+{
+    (void)g;
+    ClearBackground(BLACK);
+    
+    DrawText("HOSTING GAME", (int)(CENTER_X - 250), 200, 60, GOLD);
+    DrawText("Waiting for player to connect...", (int)(CENTER_X - 320), 350, 40, WHITE);
+    
+    // Animated dots
+    int dots = ((int)(GetTime() * 2)) % 4;
+    char loading[5] = "";
+    for (int i = 0; i < dots; i++)
+        loading[i] = '.';
+    loading[dots] = '\0';
+    DrawText(loading, (int)(CENTER_X - 30), 450, 60, YELLOW);
+    
+    DrawText("Port: 7777", (int)(CENTER_X - 100), 550, 30, LIGHTGRAY);
+    DrawText("CANCEL (ESC or B)", (int)(CENTER_X - 150), (int)SCREEN_H - 100, 30, GRAY);
+}
+
+void UpdateHostingWaiting(LobbyState *g)
+{
+    int gamepad = GetActiveGamepad();
+    
+    // Check for client connection
+    if (CheckForClient(g))
+    {
+        // Client connected! Initialize game
+        InitGame(g);
+        SwitchState(g, STATE_JOKERS_GAMBIT);
+        ShowNotification(g, "CONNECTED", "Player joined! Game starting...");
+        return;
+    }
+    
+    // Cancel hosting
+    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_B) || 
+        (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
+    {
+        // Close listen socket
+        if (g->net_listen_socket >= 0)
+        {
+            closesocket(g->net_listen_socket);
+            g->net_listen_socket = -1;
+        }
+        
+        g->net_role = NET_NONE;
+        g->is_host = false;
+        
+        SwitchState(g, STATE_ONLINE_CHOICE);
+        ShowNotification(g, "CANCELLED", "Hosting cancelled");
     }
 }

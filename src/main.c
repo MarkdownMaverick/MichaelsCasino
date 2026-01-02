@@ -341,6 +341,7 @@ void UpdateAIP2Selection(LobbyState *g, Vector2 mouse)
 }
 int main(void)
 {
+    
     // Initialize window
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow((int)SCREEN_W, (int)SCREEN_H, "Michael's Casino");
@@ -388,6 +389,9 @@ int main(void)
     game_state.achievement_cursor_row = 0;
     game_state.achievement_scroll_row = 0;
     game_state.editing_name = false;
+    game_state.net_socket = -1;
+game_state.net_listen_socket = -1;  // NEW
+game_state.net_connected = false;
     memset(game_state.edit_first_name, 0, sizeof(game_state.edit_first_name));
     memset(game_state.edit_last_name, 0, sizeof(game_state.edit_last_name));
     game_state.edit_cursor_pos = 0;
@@ -475,6 +479,9 @@ int main(void)
         case STATE_ONLINE_CHOICE:
             UpdateOnlineChoice(&game_state);
             break;
+        case STATE_HOSTING_WAITING:
+            UpdateHostingWaiting(&game_state);
+            break;
         default:
             break;
         }
@@ -532,6 +539,9 @@ int main(void)
             break;
         case STATE_ONLINE_CHOICE:
             DrawOnlineChoice(&game_state);
+            break;
+        case STATE_HOSTING_WAITING:
+            DrawHostingWaiting(&game_state);
             break;
         default:
             break;

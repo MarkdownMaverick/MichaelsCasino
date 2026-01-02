@@ -40,7 +40,8 @@ void UpdateMultiplayer(LobbyState *g);
 void DrawOnlineChoice(const LobbyState *g);
 void UpdateOnlineChoice(LobbyState *g);
 void UpdatePVPSetupP2(LobbyState *core);
-
+void DrawHostingWaiting(const LobbyState *g);
+void UpdateHostingWaiting(LobbyState *g);
 void DrawBettingSetup(const LobbyState *g);
 void UpdateBettingSetup(LobbyState *g, Vector2 mouse);
 void SetupBettingMatch(LobbyState *g);

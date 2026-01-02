@@ -129,7 +129,8 @@ typedef enum
     STATE_PVP_SETUP_P1,
     STATE_PVP_SETUP_P2,
     MULTIPLAYER,
-    STATE_ONLINE_CHOICE
+    STATE_ONLINE_CHOICE,
+    STATE_HOSTING_WAITING
 } UIState;
 typedef struct
 {
@@ -272,6 +273,7 @@ typedef struct
     NetworkRole net_role;
     bool net_connected;
     int net_socket;        // Socket handle
+    int net_listen_socket; // NEW: Listen socket for hosting
     unsigned int rng_seed; // Seed to sync decks
     double net_timeout;
 } LobbyState;

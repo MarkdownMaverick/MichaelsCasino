@@ -2,7 +2,10 @@
 #define MULTIPLAYER_H
 
 #include "main.h"
-
+#ifndef _WIN32
+    #include <unistd.h>
+    #define closesocket close
+#endif
 // Platform independent socket init
 void InitNetworkSystem(void);
 void CloseNetworkSystem(void);
@@ -19,5 +22,7 @@ bool ReceivePacket(LobbyState *g, NetPacket *out_packet);
 
 // Helper prototype
 void SetNonBlocking(int sock);
-
+//  new prototypes
+bool StartHosting(LobbyState *g, int port);
+bool CheckForClient(LobbyState *g);
 #endif
