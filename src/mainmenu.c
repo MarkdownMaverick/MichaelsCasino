@@ -4,7 +4,7 @@
 #include <strings.h>
 #include <stdlib.h>
 #include "main.h"
-#include "multiplayer.h"  
+#include "multiplayer.h"
 
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -1490,8 +1490,6 @@ void DrawMultiplayerMode(const LobbyState *g)
 
     DrawRectangleRec((Rectangle){CENTER_X - 400, 400, 350, 100}, single_col);
     DrawRectangleRec((Rectangle){CENTER_X + 50, 400, 350, 100}, online_col);
-    DrawRectangleLinesEx((Rectangle){CENTER_X - 400, 400, 350, 100}, 6, GOLD);
-    DrawRectangleLinesEx((Rectangle){CENTER_X + 50, 400, 350, 100}, 6, GOLD);
 
     DrawText("LOCAL PVP", (int)(CENTER_X - 340), 440, 40, WHITE);
     DrawText("ONLINE PVP", (int)(CENTER_X + 70), 440, 40, WHITE);
@@ -1551,8 +1549,6 @@ void DrawOnlineChoice(const LobbyState *g)
 
     DrawRectangleRec((Rectangle){CENTER_X - 400, 400, 350, 100}, host_col);
     DrawRectangleRec((Rectangle){CENTER_X + 50, 400, 350, 100}, connect_col);
-    DrawRectangleLinesEx((Rectangle){CENTER_X - 400, 400, 350, 100}, 6, GOLD);
-    DrawRectangleLinesEx((Rectangle){CENTER_X + 50, 400, 350, 100}, 6, GOLD);
 
     DrawText("HOST GAME", (int)(CENTER_X - 330), 440, 40, WHITE);
     DrawText("CONNECT", (int)(CENTER_X + 90), 440, 40, WHITE);
@@ -1593,11 +1589,12 @@ void UpdateOnlineChoice(LobbyState *g)
             InitNetworkSystem();
             if (HostGame(g, 7777))
             {
-                g->p1_input_device = 0;
-                g->game_state->mode = MODE_PVP;
-                g->pvp_multiplayer = true;
-                InitGame(g);
+                g->is_host = true;
+                g->p1_input_device = 0;  // Host uses Keyboard/Mouse
+                g->p2_input_device = -1; // Disable local P2 input
+
                 SwitchState(g, STATE_JOKERS_GAMBIT);
+                InitGame(g);
             }
             else
             {
@@ -1611,11 +1608,12 @@ void UpdateOnlineChoice(LobbyState *g)
             // Hardcoded localhost for now
             if (ConnectToGame(g, "127.0.0.1", 7777))
             {
-                g->p2_input_device = 0;
-                g->game_state->mode = MODE_PVP;
-                g->pvp_multiplayer = true;
-                InitGame(g);
+                g->is_host = false;
+                g->p1_input_device = -1; // Disable local P1 input
+                g->p2_input_device = 0;  // Laptop user controls P2
+
                 SwitchState(g, STATE_JOKERS_GAMBIT);
+                InitGame(g);
             }
             else
             {
