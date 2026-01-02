@@ -1588,7 +1588,10 @@ void UpdateOnlineChoice(LobbyState *g)
                 g->p1_input_device = 0;  // Host uses Keyboard/Mouse for P1
                 g->p2_input_device = -1; // P2 is remote
                 g->game_state->mode = MODE_PVP;
-                
+                unsigned int seed = (unsigned int)time(NULL);
+                g->rng_seed = seed;
+                srand(seed); // Seed the host's game
+                SendPacket(g, PKT_SEED, (int)seed);
                 // Go to waiting screen instead of initializing game
                 SwitchState(g, STATE_HOSTING_WAITING);
                 ShowNotification(g, "HOSTING", "Waiting for player to connect...");
@@ -1611,7 +1614,9 @@ void UpdateOnlineChoice(LobbyState *g)
 
                 g->game_state->mode = MODE_PVP;
                 WhereDoiSit(g); // Move client to P2 seat
-
+                // Send local P2 name to Host
+                // Note:   need a SendStringPacket helper or send the index if accounts match
+                SendPacket(g, PKT_CLIENT_INFO, g->game_state->p2_account_index);
                 // Don't initialize yet - wait for seed from host
                 SwitchState(g, STATE_JOKERS_GAMBIT);
                 ShowNotification(g, "CONNECTED", "Joined game as P2!");
@@ -1627,10 +1632,10 @@ void DrawHostingWaiting(const LobbyState *g)
 {
     (void)g;
     ClearBackground(BLACK);
-    
+
     DrawText("HOSTING GAME", (int)(CENTER_X - 250), 200, 60, GOLD);
     DrawText("Waiting for player to connect...", (int)(CENTER_X - 320), 350, 40, WHITE);
-    
+
     // Animated dots
     int dots = ((int)(GetTime() * 2)) % 4;
     char loading[5] = "";
@@ -1638,7 +1643,7 @@ void DrawHostingWaiting(const LobbyState *g)
         loading[i] = '.';
     loading[dots] = '\0';
     DrawText(loading, (int)(CENTER_X - 30), 450, 60, YELLOW);
-    
+
     DrawText("Port: 7777", (int)(CENTER_X - 100), 550, 30, LIGHTGRAY);
     DrawText("CANCEL (ESC or B)", (int)(CENTER_X - 150), (int)SCREEN_H - 100, 30, GRAY);
 }
@@ -1646,7 +1651,7 @@ void DrawHostingWaiting(const LobbyState *g)
 void UpdateHostingWaiting(LobbyState *g)
 {
     int gamepad = GetActiveGamepad();
-    
+
     // Check for client connection
     if (CheckForClient(g))
     {
@@ -1656,9 +1661,9 @@ void UpdateHostingWaiting(LobbyState *g)
         ShowNotification(g, "CONNECTED", "Player joined! Game starting...");
         return;
     }
-    
+
     // Cancel hosting
-    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_B) || 
+    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_B) ||
         (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
         // Close listen socket
@@ -1667,10 +1672,10 @@ void UpdateHostingWaiting(LobbyState *g)
             closesocket(g->net_listen_socket);
             g->net_listen_socket = -1;
         }
-        
+
         g->net_role = NET_NONE;
         g->is_host = false;
-        
+
         SwitchState(g, STATE_ONLINE_CHOICE);
         ShowNotification(g, "CANCELLED", "Hosting cancelled");
     }

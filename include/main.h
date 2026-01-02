@@ -52,7 +52,9 @@ typedef enum
     PKT_DISCARD, // Send discard index
     PKT_PLACE,   // Send placement hand index
     PKT_PASS,    // Pass turn
-    PKT_RESTART
+    PKT_RESTART,
+    PKT_PLAYER_NAME,
+    PKT_CLIENT_INFO
 } PacketType;
 
 typedef struct
