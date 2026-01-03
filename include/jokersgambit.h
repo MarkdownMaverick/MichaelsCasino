@@ -90,13 +90,11 @@ typedef struct
 typedef enum
 {
     STATE_ROUND_START,
-    STATE_P1_SELECT_DISCARD,
-    STATE_P2_SELECT_DISCARD,
+    STATE_SELECT_DISCARD,
     STATE_REVEAL_AND_RESOLVE,
     STATE_WAIT_FOR_TURN,
     STATE_HAND_RESHUFFLE,
     STATE_COVER_ANIMATION,
-    STATE_ROUNDS_COMPLETED,
     STATE_CHECK_WIN,
     STATE_GAME_OVER
 } GameStateEnum;
@@ -105,7 +103,8 @@ typedef enum
     MODE_PVP,
     MODE_PVAI,
     MODE_AIVAI,
-    MODE_BETTING
+    MODE_BETTING,
+    MODE_ONLINE
 } GameMode;
 
 struct GameState
@@ -237,4 +236,5 @@ void AddLeaderboardEntry(LobbyState *core, int winner);
 void UpdateScale(void);
 void StartPVPGame(LobbyState *g);
 void WhereDoiSit(LobbyState *g);
+void ProcessNetworkPackets(LobbyState *core, GameState *g);
 #endif

@@ -137,8 +137,8 @@ void UpdateModeSelection(LobbyState *g, Vector2 mouse)
     {
         switch (g->menu_selection)
         {
-        case 0:                          // PLAYER vs PLAYER
-            SwitchState(g, MULTIPLAYER); // Go to choice screen first
+        case 0:                                // PLAYER vs PLAYER
+            SwitchState(g, STATE_MULTIPLAYER); // Go to choice screen first
             break;
         case 1: // Player vs AI
             g->game_state->mode = MODE_PVAI;
@@ -341,7 +341,7 @@ void UpdateAIP2Selection(LobbyState *g, Vector2 mouse)
 }
 int main(void)
 {
-    
+
     // Initialize window
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow((int)SCREEN_W, (int)SCREEN_H, "Michael's Casino");
@@ -390,8 +390,8 @@ int main(void)
     game_state.achievement_scroll_row = 0;
     game_state.editing_name = false;
     game_state.net_socket = -1;
-game_state.net_listen_socket = -1;  // NEW
-game_state.net_connected = false;
+    game_state.net_listen_socket = -1; // NEW
+    game_state.net_connected = false;
     memset(game_state.edit_first_name, 0, sizeof(game_state.edit_first_name));
     memset(game_state.edit_last_name, 0, sizeof(game_state.edit_last_name));
     game_state.edit_cursor_pos = 0;
@@ -473,7 +473,7 @@ game_state.net_connected = false;
         case STATE_PVP_SETUP_P2:
             UpdatePVPSetupP2(&game_state);
             break;
-        case MULTIPLAYER:
+        case STATE_MULTIPLAYER:
             UpdateMultiplayer(&game_state);
             break;
         case STATE_ONLINE_CHOICE:
@@ -534,7 +534,7 @@ game_state.net_connected = false;
         case STATE_PVP_SETUP_P2:
             DrawPVPSetupP2(&game_state);
             break;
-        case MULTIPLAYER:
+        case STATE_MULTIPLAYER:
             DrawMultiplayerMode(&game_state);
             break;
         case STATE_ONLINE_CHOICE:

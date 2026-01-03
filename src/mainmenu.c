@@ -1572,11 +1572,12 @@ void UpdateOnlineChoice(LobbyState *g)
     // Back button
     if (IsKeyPressed(KEY_B) || (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
-        SwitchState(g, MULTIPLAYER);
+        SwitchState(g, STATE_MULTIPLAYER);
         return;
     }
 
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+
     {
         // Click Host
         if (CheckCollisionPointRec(mouse, host_rect))
@@ -1587,7 +1588,7 @@ void UpdateOnlineChoice(LobbyState *g)
                 g->is_host = true;
                 g->p1_input_device = 0;  // Host uses Keyboard/Mouse for P1
                 g->p2_input_device = -1; // P2 is remote
-                g->game_state->mode = MODE_PVP;
+                g->game_state->mode = MODE_ONLINE;
                 unsigned int seed = (unsigned int)time(NULL);
                 g->rng_seed = seed;
                 srand(seed); // Seed the host's game
@@ -1612,7 +1613,7 @@ void UpdateOnlineChoice(LobbyState *g)
                 g->p1_input_device = -1; // P1 is remote (host)
                 g->p2_input_device = 0;  // Client controls P2
 
-                g->game_state->mode = MODE_PVP;
+                g->game_state->mode = MODE_ONLINE;
                 WhereDoiSit(g); // Move client to P2 seat
                 // Send local P2 name to Host
                 // Note:   need a SendStringPacket helper or send the index if accounts match

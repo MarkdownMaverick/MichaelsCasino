@@ -49,12 +49,16 @@ typedef enum
 {
     PKT_HANDSHAKE,
     PKT_SEED,    // Host sends RNG seed to client
-    PKT_DISCARD, // Send discard index
-    PKT_PLACE,   // Send placement hand index
+    PKT_P1_DISCARD,      // P1 discard index
+    PKT_P2_DISCARD,      // P2 discard index
+    PKT_DISCARD_RESOLVE,   // STATE_REVEAL_AND_RESOLVE
+    PKT_P1_PLACE,        // P1 place: data = hand_idx * 10 + key_idx
+    PKT_P2_PLACE,        // P2 place: data = hand_idx * 10 + key_idx
     PKT_PASS,    // Pass turn
     PKT_RESTART,
     PKT_PLAYER_NAME,
-    PKT_CLIENT_INFO
+    PKT_CLIENT_INFO,
+    PKT_WIN
 } PacketType;
 
 typedef struct
@@ -130,7 +134,7 @@ typedef enum
     STATE_SLOT_REELS,
     STATE_PVP_SETUP_P1,
     STATE_PVP_SETUP_P2,
-    MULTIPLAYER,
+    STATE_MULTIPLAYER,
     STATE_ONLINE_CHOICE,
     STATE_HOSTING_WAITING
 } UIState;

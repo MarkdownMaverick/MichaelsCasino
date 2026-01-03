@@ -1,4 +1,3 @@
-
 #include "jokersgambit.h"
 #include "aibots.h"
 #include "mainmenu.h"
@@ -7,7 +6,6 @@
 #include "main.h"
 #include <time.h>
 #include "multiplayer.h"
-
 #define UI_FRAME_W 480
 #define UI_FRAME_H 150
 #define P1_UI_X 10
@@ -44,7 +42,6 @@ Sound g_continue_sound = {0};
 Sound g_coin_sound = {0};
 Sound g_shuffle_sound = {0};
 GameState g_initial_state = {0};
-
 void LoadCardAtlas(void)
 {
     g_atlas_texture = LoadTexture("assets/DECK0.png");
@@ -354,15 +351,12 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
 {
     Vector2 mouse = GetMousePosition();
     int gamepad = GetActiveGamepad();
-
     DrawPlayerUI(core, g, 1);
     DrawPlayerUI(core, g, 2);
-
     // Draw keycards and slots
     for (int k = 0; k < KEYCARDS; k++)
     {
         DrawCard(g->keycards[k], KeyCardRect(k), RAYWHITE);
-
         for (int s = 0; s < 3; s++)
         {
             Rectangle slot_rect = SlotRect(1, k, s);
@@ -371,7 +365,6 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
             else
                 DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), slot_rect, (Vector2){0, 0}, 0.0f, Fade(WHITE, 0.25f));
         }
-
         for (int s = 0; s < 3; s++)
         {
             Rectangle slot_rect = SlotRect(2, k, s);
@@ -381,72 +374,59 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
                 DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), slot_rect, (Vector2){0, 0}, 0.0f, Fade(WHITE, 0.25f));
         }
     }
-
     // Draw player hands
-for (int i = 0; i < HAND_SIZE; i++)
-{
-    Rectangle p1_rect = HandRect(1, i);
-    if (i < g->p1_hand_size)
+    for (int i = 0; i < HAND_SIZE; i++)
     {
-        // Cover P1 cards if:
-        // - cover_p1_cards is enabled, OR
-        // - we're the client in a network game
-        bool should_cover_p1 = g->cover_p1_cards || 
-                               (core->net_connected && !core->is_host);
-        
-        if (should_cover_p1)
+        Rectangle p1_rect = HandRect(1, i);
+        if (i < g->p1_hand_size)
         {
-            DrawTexturePro(g_atlas_texture, GetAtlasTempCover(), p1_rect, 
-                          (Vector2){0, 0}, 0.0f, WHITE);
+            // Cover P1 cards if:
+            // - cover_p1_cards is enabled, OR
+            // - we're the client in a network game
+            bool should_cover_p1 = g->cover_p1_cards ||
+                                   (core->net_connected && !core->is_host);
+            if (should_cover_p1)
+            {
+                DrawTexturePro(g_atlas_texture, GetAtlasTempCover(), p1_rect,
+                               (Vector2){0, 0}, 0.0f, WHITE);
+            }
+            else
+            {
+                Color tint = (g->p1_discard_ready && i == g->p1_discard_idx) ? YELLOW : RAYWHITE;
+                DrawCard(g->player1_hand[i], p1_rect, tint);
+            }
         }
-        else
+        // ... P1 button drawing ...
+        Rectangle p2_rect = HandRect(2, i);
+        if (i < g->p2_hand_size)
         {
-            Color tint = (g->p1_discard_ready && i == g->p1_discard_idx) ? YELLOW : RAYWHITE;
-            DrawCard(g->player1_hand[i], p1_rect, tint);
+            bool should_cover_p2 = g->cover_p2_cards ||
+                                   (core->net_connected && core->is_host);
+            if (should_cover_p2)
+            {
+                DrawTexturePro(g_atlas_texture, GetAtlasTempCover(), p2_rect,
+                               (Vector2){0, 0}, 0.0f, WHITE);
+            }
+            else
+            {
+                Color tint = (g->p2_discard_ready && i == g->p2_discard_idx) ? PURPLE : RAYWHITE;
+                DrawCard(g->player2_hand[i], p2_rect, tint);
+            }
         }
+        // ... P2 button drawing ...
     }
-    
-    // ... P1 button drawing ...
-
-    Rectangle p2_rect = HandRect(2, i);
-    if (i < g->p2_hand_size)
-    {
-        // Cover P2 cards if:
-        // - cover_p2_cards is enabled, OR
-        // - we're the host in a network game
-        bool should_cover_p2 = g->cover_p2_cards || 
-                               (core->net_connected && core->is_host);
-        
-        if (should_cover_p2)
-        {
-            DrawTexturePro(g_atlas_texture, GetAtlasTempCover(), p2_rect, 
-                          (Vector2){0, 0}, 0.0f, WHITE);
-        }
-        else
-        {
-            Color tint = (g->p2_discard_ready && i == g->p2_discard_idx) ? PURPLE : RAYWHITE;
-            DrawCard(g->player2_hand[i], p2_rect, tint);
-        }
-    }
-    
-    // ... P2 button drawing ...
-}
-
     // Draw discard piles
     Rectangle d1_rect = DiscardPileRect(1);
     if (g->revealed_p1.is_valid)
         DrawCard(g->revealed_p1, d1_rect, RAYWHITE);
     else
         DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), d1_rect, (Vector2){0, 0}, 0.0f, WHITE);
-
     Rectangle d2_rect = DiscardPileRect(2);
     if (g->revealed_p2.is_valid)
         DrawCard(g->revealed_p2, d2_rect, RAYWHITE);
     else
         DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), d2_rect, (Vector2){0, 0}, 0.0f, WHITE);
-
     DrawContinueButtons(g, mouse);
-
     // Keyboard shortcuts
     if (IsKeyPressed(KEY_COMMA) || (XboxBtnPressed(gamepad, 6)))
     {
@@ -458,18 +438,14 @@ void WhereDoiSit(LobbyState *g)
 {
     // Store the currently logged-in player's account
     int my_account = g->p1_account_index;
-
     // Move them to P2 position
     g->p2_account_index = my_account;
     g->p1_account_index = -1; // P1 will be the remote host
-
     // Client controls P2 only
     g->p1_input_device = -1; // Disable P1 input (remote)
     g->p2_input_device = 0;  // Enable P2 input (local)
-
     // Mark as client
     g->is_host = false;
-
     TraceLog(LOG_INFO, "Client moved to P2 seat. P1 is remote (host).");
 }
 void AutoLogout(LobbyState *g)
@@ -493,15 +469,30 @@ void AutoLogout(LobbyState *g)
 }
 void DrawGameOver(LobbyState *core, GameState *g)
 {
+    Vector2 mouse = GetMousePosition();
+    if (core->net_connected)
+    {
+        Rectangle restart_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
+        DrawRectangleRec(restart_btn, CheckCollisionPointRec(mouse, restart_btn) ? SKYBLUE : BLUE);
+        DrawText("RESTART", (int)(restart_btn.x + 40), (int)(restart_btn.y + 25), 30, WHITE);
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, restart_btn))
+        {
+            int requesting_player = core->is_host ? 1 : 2;
+            SendPacket(core, PKT_RESTART, requesting_player);
+        }
+        RestartGameKeepingAccounts(core);
+    }
     if (g->mode == MODE_BETTING)
     {
-        Vector2 mouse = GetMousePosition();
         Rectangle menu_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
         DrawRectangleRec(menu_btn, CheckCollisionPointRec(mouse, menu_btn) ? SKYBLUE : BLUE);
         DrawText("MAIN MENU", (int)(menu_btn.x + 40), (int)(menu_btn.y + 25), 30, WHITE);
     }
     if (g->mode == MODE_PVP)
     {
+        Rectangle menu_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
+        DrawRectangleRec(menu_btn, CheckCollisionPointRec(mouse, menu_btn) ? SKYBLUE : BLUE);
+        DrawText("MAIN MENU", (int)(menu_btn.x + 40), (int)(menu_btn.y + 25), 30, WHITE);
     }
     if (g->mode == MODE_PVAI)
     {
@@ -515,7 +506,6 @@ void DrawGameOver(LobbyState *core, GameState *g)
         float winner_score = (g->winner == 1) ? g->final_score_p1 : g->final_score_p2;
         // Note: This score is calculated in State Machine, just display it
         DrawText(TextFormat("Final Result: $%.2f", winner_score), (int)(CENTER_X - (float)MeasureText(TextFormat("Final Result: $%.2f", winner_score), 40) / 2.0f), (int)(SCREEN_H / 2 - 50), 40, LIME);
-        Vector2 mouse = GetMousePosition();
         Rectangle menu_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
         DrawRectangleRec(menu_btn, CheckCollisionPointRec(mouse, menu_btn) ? SKYBLUE : BLUE);
         DrawText("MAIN MENU", (int)(menu_btn.x + 40), (int)(menu_btn.y + 25), 30, WHITE);
@@ -870,7 +860,7 @@ void InitGame(LobbyState *core)
     g->delay_discard_p1 = BlankCard();
     g->delay_discard_p2 = BlankCard();
     g->discards_pending = false;
-    g->state = STATE_P1_SELECT_DISCARD;
+    g->state = STATE_SELECT_DISCARD;
     g->p1_completed_ranks = g->p2_completed_ranks = 0;
     g->total_rounds = 0;
     g->placement_phases_count = 0;
@@ -942,191 +932,379 @@ void AddLeaderboardEntry(LobbyState *core, int winner)
     }
     SaveLeaderboard(core);
 }
-void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
+// ============================================================================
+//   NEW HELPER: Process all pending packets
+// ============================================================================
+void ProcessNetworkPackets(LobbyState *core, GameState *g)
 {
-    GameState *g = core->game_state;
-
-    // --- NETWORK PACKET HANDLING ---
-    if (core->net_connected)
+    NetPacket pkt;
+    while (ReceivePacket(core, &pkt))
     {
-        NetPacket pkt;
-        while (ReceivePacket(core, &pkt))
+        switch (pkt.type)
         {
-            if (pkt.type == PKT_SEED)
+        case PKT_SEED:
+            // Client receives seed from host
+            if (!core->is_host)
             {
-                srand((unsigned int)pkt.data);
+                core->rng_seed = (unsigned int)pkt.data;
+                srand(core->rng_seed);
                 InitGame(core);
-                TraceLog(LOG_INFO, "Client received seed and initialized game");
+                TraceLog(LOG_INFO, "Client synced with seed: %u", core->rng_seed);
             }
-            else if (pkt.type == PKT_DISCARD)
+            break;
+        case PKT_P1_DISCARD:
+            // Client receives host's discard choice
+            if (!core->is_host)
             {
-                // Host receives P2's discard, Client receives P1's discard
-                if (core->is_host)
-                {
-                    g->p2_discard_idx = pkt.data;
-                    g->p2_discard_ready = true;
-                    TraceLog(LOG_INFO, "Host received P2 discard: %d", pkt.data);
-                }
-                else
-                {
-                    g->p1_discard_idx = pkt.data;
-                    g->p1_discard_ready = true;
-                    TraceLog(LOG_INFO, "Client received P1 discard: %d", pkt.data);
-                }
+                g->p1_discard_idx = pkt.data;
+                g->p1_discard_ready = true;
                 PlaySound(g_discard_sound);
+                TraceLog(LOG_INFO, "Received P1 discard: %d", pkt.data);
             }
-            else if (pkt.type == PKT_PASS)
+            break;
+        case PKT_P2_DISCARD:
+            // Host receives client's discard choice
+            if (core->is_host)
             {
-                // Host receives P2's pass, Client receives P1's pass
-                if (core->is_host)
+                g->p2_discard_idx = pkt.data;
+                g->p2_discard_ready = true;
+                PlaySound(g_discard_sound);
+                TraceLog(LOG_INFO, "Received P2 discard: %d", pkt.data);
+            }
+            break;
+        case PKT_P1_PLACE:
+            // Client receives host's placement: data = (hand_idx * 100) + key_idx
+            if (!core->is_host)
+            {
+                int hand_idx = pkt.data / 100;
+                int key_idx = pkt.data % 100;
+                if (hand_idx >= 0 && hand_idx < g->p1_hand_size)
                 {
-                    g->p2_done_placing = true;
-                    TraceLog(LOG_INFO, "Host received P2 pass");
+                    Card c = g->player1_hand[hand_idx];
+                    // Find empty slot for this rank
+                    for (int s = 0; s < 3; s++)
+                    {
+                        if (!g->p1_slots[key_idx][s].is_valid)
+                        {
+                            // Calculate bonus BEFORE placement
+                            int cards_before = 0;
+                            for (int sc = 0; sc < 3; sc++)
+                            {
+                                if (g->p1_slots[key_idx][sc].is_valid)
+                                    cards_before++;
+                            }
+                            // Place card
+                            g->p1_slots[key_idx][s] = c;
+                            float mult = GetRewardMultiplier(g->p1_completed_ranks);
+                            g->p1_temp_credits += REWARD_PLACEMENT * mult;
+                            CheckRankCompletionBonus(g, 1, key_idx, cards_before);
+                            // Remove from hand and draw new
+                            for (int j = hand_idx; j < g->p1_hand_size - 1; j++)
+                            {
+                                g->player1_hand[j] = g->player1_hand[j + 1];
+                            }
+                            g->p1_hand_size--;
+                            g->player1_hand[g->p1_hand_size++] = DrawFromDeck(g);
+                            PlaySound(g_place_sound);
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+        case PKT_P2_PLACE:
+            // Host receives client's placement
+            if (core->is_host)
+            {
+                int hand_idx = pkt.data / 100;
+                int key_idx = pkt.data % 100;
+                if (hand_idx >= 0 && hand_idx < g->p2_hand_size)
+                {
+                    Card c = g->player2_hand[hand_idx];
+                    for (int s = 0; s < 3; s++)
+                    {
+                        if (!g->p2_slots[key_idx][s].is_valid)
+                        {
+                            int cards_before = 0;
+                            for (int sc = 0; sc < 3; sc++)
+                            {
+                                if (g->p2_slots[key_idx][sc].is_valid)
+                                    cards_before++;
+                            }
+                            g->p2_slots[key_idx][s] = c;
+                            float mult = GetRewardMultiplier(g->p2_completed_ranks);
+                            g->p2_temp_credits += REWARD_PLACEMENT * mult;
+                            CheckRankCompletionBonus(g, 2, key_idx, cards_before);
+                            for (int j = hand_idx; j < g->p2_hand_size - 1; j++)
+                            {
+                                g->player2_hand[j] = g->player2_hand[j + 1];
+                            }
+                            g->p2_hand_size--;
+                            g->player2_hand[g->p2_hand_size++] = DrawFromDeck(g);
+                            PlaySound(g_place_sound);
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
+        case PKT_PASS:
+            // Receive pass notification
+            if (core->is_host)
+            {
+                g->p2_done_placing = true;
+                g->p2_temp_credits -= COST_PER_ROUND;
+                TraceLog(LOG_INFO, "P2 passed");
+            }
+            else
+            {
+                g->p1_done_placing = true;
+                g->p1_temp_credits -= COST_PER_ROUND;
+                TraceLog(LOG_INFO, "P1 passed");
+            }
+            PlaySound(g_coin_sound);
+            break;
+        case PKT_HANDSHAKE:
+            if (core->is_host)
+            {
+                // Host receives client's handshake
+                int client_version = pkt.data;
+                int host_version = 1; // Your protocol version
+                if (client_version == host_version)
+                {
+                    TraceLog(LOG_INFO, "Handshake successful (version %d)", client_version);
+                    // Send confirmation back
+                    SendPacket(core, PKT_HANDSHAKE, host_version);
                 }
                 else
                 {
-                    g->p1_done_placing = true;
-                    TraceLog(LOG_INFO, "Client received P1 pass");
+                    TraceLog(LOG_ERROR, "Version mismatch! Host=%d, Client=%d",
+                             host_version, client_version);
+                    // Should disconnect here
+                    CloseConnection(core);
+                }
+            }
+            else
+            {
+                // Client receives host's handshake response
+                TraceLog(LOG_INFO, "Handshake confirmed by host");
+            }
+            break;
+        case PKT_DISCARD_RESOLVE:
+            // This is actually OPTIONAL since ResolveDiscards() is deterministic
+            // if both sides have the same RNG seed. But for extra safety:
+            if (!core->is_host)
+            {
+                // Client receives host's discard resolution
+                int p1_idx = pkt.data / 10;
+                int p2_idx = pkt.data % 10;
+                // Verify our indices match
+                if (p1_idx != g->p1_discard_idx || p2_idx != g->p2_discard_idx)
+                {
+                    TraceLog(LOG_ERROR, "Discard mismatch! Expected P1=%d,P2=%d, Got P1=%d,P2=%d",
+                             p1_idx, p2_idx, g->p1_discard_idx, g->p2_discard_idx);
+                    // Resync or disconnect
+                }
+            }
+            break;
+        case PKT_RESTART:
+        {
+            int requesting_player = pkt.data;
+            TraceLog(LOG_INFO, "P%d requested restart", requesting_player);
+            // Show confirmation dialog or auto-restart
+            // For now, auto-restart:
+            RestartGameKeepingAccounts(core);
+            g->state = STATE_SELECT_DISCARD;
+            ShowNotification(core, "GAME RESTARTED",
+                             TextFormat("P%d restarted the game", requesting_player));
+        }
+        break;
+        case PKT_PLAYER_NAME:
+        {
+            // NOTE: This assumes both clients have the same accounts.json file
+            // For a real implementation, you'd send the actual name string
+            int account_idx = pkt.data;
+            if (core->is_host)
+            {
+                // Host receives client's account index
+                // Client is P2, so update P2's account
+                if (account_idx >= 0 && account_idx < core->account_count)
+                {
+                    core->p2_account_index = account_idx;
+                    g->p2_account_index = account_idx;
+                    TraceLog(LOG_INFO, "Client is using account: %s",
+                             GetPlayerNameByIndex(core, account_idx));
+                }
+            }
+            else
+            {
+                // Client receives host's account index
+                // Host is P1, so update P1's account
+                if (account_idx >= 0 && account_idx < core->account_count)
+                {
+                    core->p1_account_index = account_idx;
+                    g->p1_account_index = account_idx;
+                    TraceLog(LOG_INFO, "Host is using account: %s",
+                             GetPlayerNameByIndex(core, account_idx));
                 }
             }
         }
+        break;
+        case PKT_CLIENT_INFO:
+        {
+            // This is more comprehensive than PKT_PLAYER_NAME
+            // You could encode multiple values:
+            // - Account index
+            // - Ready status
+            // - Settings preferences
+            // Example: Pack account_idx and ready_status
+            int account_idx = pkt.data & 0xFF;      // Lower 8 bits
+            bool is_ready = (pkt.data >> 8) & 0x01; // Bit 8
+            if (core->is_host)
+            {
+                // Host processes client info
+                core->p2_account_index = account_idx;
+                g->p2_account_index = account_idx;
+                TraceLog(LOG_INFO, "Client info: account=%d, ready=%d",
+                         account_idx, is_ready);
+            }
+            // Could also use this for lobby ready-up system
+        }
+        break;
+        case PKT_WIN:
+            // Client receives winner announcement
+            if (!core->is_host)
+            {
+                g->winner = pkt.data;
+                g->game_over = true;
+                g->win_timer_start = GetTime();
+                TraceLog(LOG_INFO, "Received win: P%d wins", g->winner);
+            }
+            break;
+        default:
+            TraceLog(LOG_WARNING, "Received unknown packet type: %d", pkt.type);
+            break;
+        }
     }
-
+} //   CONTINUOUS PACKET PROCESSING ADDED
+void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
+{
+    GameState *g = core->game_state;
+    // *** CRITICAL: Process network packets EVERY frame ***
+    if (core->net_connected && g->mode == MODE_ONLINE)
+    {
+        ProcessNetworkPackets(core, g);
+    }
     switch (g->state)
     {
     case STATE_ROUND_START:
     {
+        // Just deduct host's starting credits and proceed
         if (g->mode == MODE_PVAI)
         {
             core->accounts[core->p1_account_index].credits -= P1_TEMP_CREDITS_START;
         }
-        g->state = STATE_P1_SELECT_DISCARD;
+        // No special online handling here - it's all in ProcessNetworkPackets now
+        g->state = STATE_SELECT_DISCARD;
         break;
     }
-
-    case STATE_P1_SELECT_DISCARD:
+    case STATE_SELECT_DISCARD:
     {
-        // === P1 INPUT (Host only in network game) ===
-        if (!core->net_connected || core->is_host)
+        // P1 discard selection (Host controls)
+        if (!g->p1_discard_ready)
         {
-            // AI P1 logic
-            if (IsPlayerAI(g, 1) && !g->p1_discard_ready)
+            if (IsPlayerAI(g, 1))
             {
                 AI_SelectDiscard(g, 1);
                 g->p1_discard_ready = true;
-
-                // If networked, send to client
-                if (core->net_connected)
-                {
-                    SendPacket(core, PKT_DISCARD, g->p1_discard_idx);
-                    TraceLog(LOG_INFO, "Host sent P1 discard: %d", g->p1_discard_idx);
-                }
             }
-            // Human P1 logic
-            else if (!IsPlayerAI(g, 1) && !g->p1_discard_ready)
+            // Online: Only host can select for P1
+            else if (core->net_role != NET_CLIENT)
             {
                 for (int i = 0; i < g->p1_hand_size; i++)
                 {
                     Rectangle btn_rect = ButtonRect(1, i);
-                    if (CheckCollisionPointRec(mouse, btn_rect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+                    if (CheckCollisionPointRec(mouse, btn_rect) &&
+                        IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
                     {
                         g->p1_discard_idx = i;
                         g->p1_discard_ready = true;
-
-                        // Send to client
-                        if (core->net_connected)
+                        // *** SEND to client ***
+                        if (core->net_connected && core->is_host)
                         {
-                            SendPacket(core, PKT_DISCARD, i);
+                            SendPacket(core, PKT_P1_DISCARD, i);
                             TraceLog(LOG_INFO, "Host sent P1 discard: %d", i);
                         }
-
                         PlaySound(g_discard_sound);
                         break;
                     }
                 }
             }
         }
-
-        // === P2 INPUT (Client only in network game) ===
-        if (!core->net_connected || !core->is_host)
+        // P2 discard selection (Client controls)
+        if (!g->p2_discard_ready)
         {
-            // AI P2 logic
-            if (IsPlayerAI(g, 2) && !g->p2_discard_ready)
+            if (IsPlayerAI(g, 2))
             {
                 AI_SelectDiscard(g, 2);
                 g->p2_discard_ready = true;
-
-                // If networked, send to host
-                if (core->net_connected)
-                {
-                    SendPacket(core, PKT_DISCARD, g->p2_discard_idx);
-                    TraceLog(LOG_INFO, "Client sent P2 discard: %d", g->p2_discard_idx);
-                }
             }
-            // Human P2 logic
-            else if (!IsPlayerAI(g, 2) && !g->p2_discard_ready)
+            // Online: Only client can select for P2
+            else if (core->net_role != NET_HOST)
             {
                 for (int i = 0; i < g->p2_hand_size; i++)
                 {
                     Rectangle btn_rect = ButtonRect(2, i);
-                    if (CheckCollisionPointRec(mouse, btn_rect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+                    if (CheckCollisionPointRec(mouse, btn_rect) &&
+                        IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
                     {
                         g->p2_discard_idx = i;
                         g->p2_discard_ready = true;
-
-                        // Send to host
-                        if (core->net_connected)
+                        // *** SEND to host ***
+                        if (core->net_connected && !core->is_host)
                         {
-                            SendPacket(core, PKT_DISCARD, i);
+                            SendPacket(core, PKT_P2_DISCARD, i);
                             TraceLog(LOG_INFO, "Client sent P2 discard: %d", i);
                         }
-
                         PlaySound(g_discard_sound);
                         break;
                     }
                 }
             }
         }
-
-        // Check if both players are ready
+        // Both ready? Proceed
         if (g->p1_discard_ready && g->p2_discard_ready)
         {
             g->state = STATE_REVEAL_AND_RESOLVE;
         }
         break;
     }
-
     case STATE_REVEAL_AND_RESOLVE:
     {
         g->revealed_p1 = g->player1_hand[g->p1_discard_idx];
         g->revealed_p2 = g->player2_hand[g->p2_discard_idx];
         g->p1_discard_ready = false;
         g->p2_discard_ready = false;
-
         // Remove discarded cards from hands
         for (int i = g->p1_discard_idx; i < g->p1_hand_size - 1; i++)
             g->player1_hand[i] = g->player1_hand[i + 1];
         g->p1_hand_size--;
-
         for (int i = g->p2_discard_idx; i < g->p2_hand_size - 1; i++)
             g->player2_hand[i] = g->player2_hand[i + 1];
         g->p2_hand_size--;
-
         ResolveDiscards(g);
         g->state = STATE_WAIT_FOR_TURN;
         g->ai_timer = 0;
         g->Reshuffle_cover_timer = 0;
         break;
     }
-
     case STATE_WAIT_FOR_TURN:
     {
-        // AI placement updates
+        // AI updates...
         if (IsPlayerAI(g, 1) && !g->p1_done_placing)
             AI_UpdatePlacementPhase(g, 1);
         if (IsPlayerAI(g, 2) && !g->p2_done_placing)
             AI_UpdatePlacementPhase(g, 2);
-
         // Check if both done
         if (g->p1_done_placing && g->p2_done_placing)
         {
@@ -1134,51 +1312,60 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
             g->p1_ai_done_placing_rounds = false;
             break;
         }
-
         float mult1 = GetRewardMultiplier(g->p1_completed_ranks);
         float mult2 = GetRewardMultiplier(g->p2_completed_ranks);
         float reward1 = REWARD_PLACEMENT * mult1;
         float reward2 = REWARD_PLACEMENT * mult2;
-
-        // P1 Human Placement
-        if (!IsPlayerAI(g, 1) && !g->p1_done_placing)
+        // P1 Human Placement (HOST ONLY in online mode)
+        if (!IsPlayerAI(g, 1) && !g->p1_done_placing &&
+            core->net_role != NET_CLIENT)
         {
             for (int i = 0; i < g->p1_hand_size; i++)
             {
                 Rectangle card_rect = HandRect(1, i);
-                if (CheckCollisionPointRec(mouse, card_rect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+                if (CheckCollisionPointRec(mouse, card_rect) &&
+                    IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
                 {
                     Card c = g->player1_hand[i];
                     if (c.suit != SUIT_HEARTS && c.rank != RANK_JOKER)
                     {
+                        // Find matching keycard
                         for (int k = 0; k < KEYCARDS; k++)
                         {
                             if (c.rank == g->keycards[k].rank)
                             {
                                 int cards_before = 0;
                                 for (int s_check = 0; s_check < 3; s_check++)
+                                {
                                     if (g->p1_slots[k][s_check].is_valid)
                                         cards_before++;
-
+                                }
                                 if (cards_before < 3)
                                 {
                                     for (int s = 0; s < 3; s++)
                                     {
                                         if (!g->p1_slots[k][s].is_valid)
                                         {
+                                            // Place card
                                             g->p1_slots[k][s] = c;
                                             g->p1_temp_credits += reward1;
                                             CheckRankCompletionBonus(g, 1, k, cards_before);
-
                                             // Remove from hand
                                             for (int j = i; j < g->p1_hand_size - 1; j++)
+                                            {
                                                 g->player1_hand[j] = g->player1_hand[j + 1];
+                                            }
                                             g->p1_hand_size--;
-
-                                            // Draw new card
                                             g->player1_hand[g->p1_hand_size++] = DrawFromDeck(g);
+                                            // *** SEND to client ***
+                                            if (core->net_connected && core->is_host)
+                                            {
+                                                int data = (i * 100) + k;
+                                                SendPacket(core, PKT_P1_PLACE, data);
+                                                TraceLog(LOG_INFO, "Host sent P1 placement: hand=%d, key=%d", i, k);
+                                            }
                                             PlaySound(g_place_sound);
-                                            break;
+                                            goto p1_placed; // Exit nested loops
                                         }
                                     }
                                 }
@@ -1188,15 +1375,17 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                     }
                 }
             }
+        p1_placed:;
         }
-
-        // P2 Human Placement
-        if (!IsPlayerAI(g, 2) && !g->p2_done_placing)
+        // P2 Human Placement (CLIENT ONLY in online mode)
+        if (!IsPlayerAI(g, 2) && !g->p2_done_placing &&
+            core->net_role != NET_HOST)
         {
             for (int i = 0; i < g->p2_hand_size; i++)
             {
                 Rectangle card_rect = HandRect(2, i);
-                if (CheckCollisionPointRec(mouse, card_rect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+                if (CheckCollisionPointRec(mouse, card_rect) &&
+                    IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
                 {
                     Card c = g->player2_hand[i];
                     if (c.suit != SUIT_HEARTS && c.rank != RANK_JOKER)
@@ -1207,9 +1396,10 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                             {
                                 int cards_before = 0;
                                 for (int s_check = 0; s_check < 3; s_check++)
+                                {
                                     if (g->p2_slots[k][s_check].is_valid)
                                         cards_before++;
-
+                                }
                                 if (cards_before < 3)
                                 {
                                     for (int s = 0; s < 3; s++)
@@ -1219,16 +1409,21 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                                             g->p2_slots[k][s] = c;
                                             g->p2_temp_credits += reward2;
                                             CheckRankCompletionBonus(g, 2, k, cards_before);
-
-                                            // Remove from hand
                                             for (int j = i; j < g->p2_hand_size - 1; j++)
+                                            {
                                                 g->player2_hand[j] = g->player2_hand[j + 1];
+                                            }
                                             g->p2_hand_size--;
-
-                                            // Draw new card
                                             g->player2_hand[g->p2_hand_size++] = DrawFromDeck(g);
+                                            // *** SEND to host ***
+                                            if (core->net_connected && !core->is_host)
+                                            {
+                                                int data = (i * 100) + k;
+                                                SendPacket(core, PKT_P2_PLACE, data);
+                                                TraceLog(LOG_INFO, "Client sent P2 placement: hand=%d, key=%d", i, k);
+                                            }
                                             PlaySound(g_place_sound);
-                                            break;
+                                            goto p2_placed;
                                         }
                                     }
                                 }
@@ -1238,70 +1433,44 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                     }
                 }
             }
+        p2_placed:;
         }
-
         // PASS BUTTON LOGIC
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         {
             Rectangle p1_pass = ContinueButtonRect(1);
             Rectangle p2_pass = ContinueButtonRect(2);
-
-            // P1 Pass (Host only in network mode)
-            if ((!core->net_connected || core->is_host) &&
+            // P1 Pass (Host controls)
+            if (core->net_role != NET_CLIENT &&
                 !IsPlayerAI(g, 1) && !g->p1_done_placing &&
                 CheckCollisionPointRec(mouse, p1_pass))
             {
                 g->p1_done_placing = true;
                 g->p1_temp_credits -= COST_PER_ROUND;
-
-                if (core->net_connected)
+                if (core->net_connected && core->is_host)
                 {
                     SendPacket(core, PKT_PASS, 1);
                     TraceLog(LOG_INFO, "Host sent P1 pass");
                 }
-
                 PlaySound(g_coin_sound);
             }
-
-            // P2 Pass (Client only in network mode)
-            if ((!core->net_connected || !core->is_host) &&
+            // P2 Pass (Client controls)
+            if (core->net_role != NET_HOST &&
                 !IsPlayerAI(g, 2) && !g->p2_done_placing &&
                 CheckCollisionPointRec(mouse, p2_pass))
             {
                 g->p2_done_placing = true;
                 g->p2_temp_credits -= COST_PER_ROUND;
-
-                if (core->net_connected)
+                if (core->net_connected && !core->is_host)
                 {
                     SendPacket(core, PKT_PASS, 2);
                     TraceLog(LOG_INFO, "Client sent P2 pass");
                 }
-
                 PlaySound(g_coin_sound);
             }
         }
-
-        int gamepad = GetActiveGamepad();
-
-        // Keyboard Shortcuts
-        bool p1_continue = IsKeyPressed(KEY_ONE) || (XboxBtnPressed(gamepad, 1));
-        bool p2_continue = IsKeyPressed(KEY_TWO) || IsKeyPressed(KEY_KP_2);
-
-        if (p1_continue && !g->p1_done_placing && !IsPlayerAI(g, 1))
-        {
-            g->p1_done_placing = true;
-            g->p1_temp_credits -= COST_PER_ROUND;
-            PlaySound(g_coin_sound);
-        }
-        if (p2_continue && !g->p2_done_placing && !IsPlayerAI(g, 2))
-        {
-            g->p2_done_placing = true;
-            g->p2_temp_credits -= COST_PER_ROUND;
-            PlaySound(g_coin_sound);
-        }
         break;
     }
-
     case STATE_HAND_RESHUFFLE:
     {
         g->placement_phases_count++;
@@ -1317,11 +1486,9 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
         }
         break;
     }
-
     case STATE_COVER_ANIMATION:
     {
         g->Reshuffle_cover_timer += GetFrameTime();
-
         if (g->Reshuffle_cover_timer >= 2.0f)
         {
             RefreshHands(g);
@@ -1333,26 +1500,27 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
         }
         break;
     }
-
     case STATE_CHECK_WIN:
     {
         UpdateWinStats(g);
-
         // Check win condition (3 or more completed ranks)
         if (g->p1_completed_ranks >= 3 || g->p2_completed_ranks >= 3)
         {
             g->winner = (g->p1_completed_ranks >= 3) ? 1 : 2;
             g->game_over = true;
             g->win_timer_start = GetTime();
-
+            // Host announces the winner
+            if (core->net_connected && core->is_host)
+            {
+                SendPacket(core, PKT_WIN, g->winner);
+                TraceLog(LOG_INFO, "Host sent win packet: P%d wins", g->winner);
+            }
             // Calculate final scores
             float winner_temp = (g->winner == 1) ? g->p1_temp_credits : g->p2_temp_credits;
             float loser_temp = (g->winner == 1) ? g->p2_temp_credits : g->p1_temp_credits;
             float winner_bonus = REWARD_MATCH * (float)g->total_rounds;
-
             g->final_score_p1 = (g->winner == 1) ? (winner_temp + winner_bonus) : (loser_temp - LOSER_PENALTY);
             g->final_score_p2 = (g->winner == 2) ? (winner_temp + winner_bonus) : (loser_temp - LOSER_PENALTY);
-
             // Update account credits based on mode
             if (g->mode == MODE_PVP)
             {
@@ -1381,13 +1549,11 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                         core->accounts[core->p1_account_index].losses++;
                     }
                     core->accounts[core->p1_account_index].tokens += 1.0;
-
                     if (!core->accounts[core->p1_account_index].is_ai)
                     {
                         UpdateGameStats(core, core->p1_account_index, GAME_JOKERS_GAMBIT, net_change);
                     }
                 }
-
                 // Update AI opponent account (simplified - no stats tracking)
                 if (core->p2_account_index >= 0)
                 {
@@ -1405,7 +1571,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                     // No stats tracking for AI opponents
                 }
             }
-
             else if (g->mode == MODE_BETTING)
             {
                 // Calculate betting payout (ONLY HERE, not in STATE_GAME_OVER)
@@ -1415,20 +1580,16 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                     {1.67, 2.50},  // THEA vs BOB
                     {5.00, 5.00}   // RANDOM
                 };
-
                 int matchup = core->betting.selected_matchup;
                 double multiplier = (g->winner == 1) ? payout_odds[matchup][1] : payout_odds[matchup][0];
-
                 bool player_won = false;
                 double winnings = 0;
-
                 if (g->winner == core->betting.bet_on_player)
                 {
                     double bet_amount = (core->betting.bet_on_player == 1) ? core->betting.p1_bet_amount : core->betting.p2_bet_amount;
                     winnings = bet_amount * multiplier;
                     player_won = true;
                 }
-
                 if (player_won && core->betting.original_player >= 0)
                 {
                     core->accounts[core->betting.original_player].tokens += winnings;
@@ -1443,20 +1604,17 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                     core->betting.net_profit = -(core->betting.p1_bet_amount + core->betting.p2_bet_amount);
                     ShowNotification(core, "BET LOST", "Better luck next time!");
                 }
-
                 // Clear betting flag
                 if (core->betting.original_player >= 0)
                 {
                     core->accounts[core->betting.original_player].active_bet = false;
                 }
             }
-
             SaveAllAccounts(core);
             SaveAchievements(core);
             UpdateAccountCredits(core);
             AddLeaderboardEntry(core, g->winner);
             PlaySound(g_win_sound);
-
             g->state = STATE_GAME_OVER;
         }
         else
@@ -1464,37 +1622,29 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
             // Continue game
             g->revealed_p1 = BlankCard();
             g->revealed_p2 = BlankCard();
-            g->state = STATE_P1_SELECT_DISCARD;
+            g->state = STATE_SELECT_DISCARD;
         }
         break;
     }
-
     case STATE_GAME_OVER:
         // No update logic needed here - handled at top of function
         break;
-
-    case STATE_P2_SELECT_DISCARD:
-    case STATE_ROUNDS_COMPLETED:
     default:
         break;
     }
 }
-
 void StartPVPGame(LobbyState *g)
 {
     // Set mode
     g->game_state->mode = MODE_PVP;
-
     // Initialize game
     InitGame(g);
-
     // Start game
     SwitchState(g, STATE_JOKERS_GAMBIT);
 }
 void DrawJokersGambit(const LobbyState *core)
 {
     const GameState *g = core->game_state;
-
     if (g->game_over)
     {
         // Game over screen (full screen)
@@ -1514,14 +1664,11 @@ void DrawJokersGambit(const LobbyState *core)
         {
             ClearBackground((Color){20, 30, 40, 255});
         }
-
         DrawGameLayout((LobbyState *)core, g);
     }
 }
-
-void UpdateDiscardSelection(GameState *g, Vector2 mouse) // UNDER CONSTRUCTION XXX
+void UpdateDiscardSelection(GameState *g, Vector2 mouse)
 {
-
     if (g->mode == MODE_PVP)
     {
         if (!IsPlayerAI(g, 1) && !g->p1_discard_ready)
@@ -1746,7 +1893,7 @@ void CheckWinCondition(GameState *g, LobbyState *core)
     else
     {
         // Continue to next round
-        g->state = STATE_P1_SELECT_DISCARD;
+        g->state = STATE_SELECT_DISCARD;
         g->p1_done_placing = false;
         g->p2_done_placing = false;
     }
