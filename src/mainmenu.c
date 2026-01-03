@@ -245,7 +245,7 @@ void UpdateLobby(LobbyState *g, Vector2 mouse)
             ShowNotification(g, "COMING SOON", "Blackjack is under development!");
             break;
         case 2: // Slot Reels
-            ShowNotification(g, "COMING SOON", "Slots are under development!");
+            SwitchState(g, STATE_SLOT_REELS);
             break;
         default:
             break;

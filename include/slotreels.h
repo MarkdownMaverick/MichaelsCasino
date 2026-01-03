@@ -4,6 +4,13 @@
 #include "raylib.h"
 #include "jokersgambit.h"     // For Rank, Suit, GetAtlasSourceRect, CARD_W_SCALED, etc.
 #include "gamepad_sdl.h"      // For XboxBtnPressed
+
+// New: Struct to hold both rank and suit for each symbol
+typedef struct {
+    Rank rank;
+    Suit suit;
+} Symbol;
+
 // Slot Reels Constants
 #define REELS_COUNT         5
 #define VISIBLE_SYMBOLS     3
@@ -26,9 +33,21 @@ typedef enum {
     SLOT_STATE_SPINNING,
     SLOT_STATE_SHOW_WIN
 } SlotState;
+typedef enum {
+    BET_AMOUNT_1 = 1,
+    BET_AMOUNT_5 = 5,
+    BET_AMOUNT_10 = 10
+} BetAmount;
+
+typedef enum {
+    PAYLINE_MIDDLE = 0,
+    PAYLINE_TOP = 1,
+    PAYLINE_BOTTOM = 2,
+    PAYLINE_ALL = 3
+} PaylineSelection;
 
 typedef struct {
-    Rank symbols[REELS_COUNT][VISIBLE_SYMBOLS + 2];
+    Symbol symbols[REELS_COUNT][VISIBLE_SYMBOLS + 2];  // Updated to Symbol
     float offset_y[REELS_COUNT];
     float target_offset[REELS_COUNT];
     float velocity[REELS_COUNT];
@@ -40,9 +59,14 @@ typedef struct {
     SlotState state;
     float spin_timer;
     float win_timer;
-
-    Rank final_grid[REELS_COUNT][VISIBLE_SYMBOLS];
+ BetAmount bet_amount;           // NEW: 1, 5, or 10 tokens
+    PaylineSelection payline_mode;  // NEW: Which lines are active
+    Symbol final_grid[VISIBLE_SYMBOLS][REELS_COUNT];  // CHANGED:  instead of 
     bool win_lines[3];
+        
+    // NEW: UI navigation state
+    int selected_button;  // 0-6: bet buttons (0-2), payline buttons (3-6), spin button (7)
+
 } SlotReelsState;
 
 typedef enum {
@@ -62,5 +86,4 @@ typedef enum {
 void InitSlotReels(SlotReelsState *slot);
 void UpdateSlotReels(LobbyState *core, SlotReelsState *slot);
 void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot);
-
 #endif // SLOTREELS_H
