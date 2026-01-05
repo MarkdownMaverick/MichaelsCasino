@@ -1664,7 +1664,7 @@ void UpdateHostingWaiting(LobbyState *g)
     }
 
     // Cancel hosting
-    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_B) ||
+    if ( IsKeyPressed(KEY_B) ||
         (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
         // Close listen socket

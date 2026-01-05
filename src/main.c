@@ -360,6 +360,10 @@ int main(void)
     g_matching_cards_sound = LoadSound("sfx/matchingcards.wav");
     g_continue_sound = LoadSound("sfx/continue.wav");
     g_shuffle_sound = LoadSound("sfx/shuffle.wav");
+
+    g_spin_sound = LoadSound("sfx/spin.wav");
+            SetSoundVolume(g_spin_sound, 0.2f);
+
     g_achievements_atlas = LoadTexture("atlas/achievements.png");
     // Initialize game state
     LobbyState game_state = {0};
@@ -564,6 +568,7 @@ int main(void)
     UnloadSound(g_continue_sound);
     UnloadSound(g_coin_sound);
     UnloadSound(g_shuffle_sound);
+    UnloadSound(g_spin_sound);
     UnloadTexture(g_achievements_atlas);
     UnloadMusicStream(g_background_music);
     free(game_state.game_state);

@@ -41,6 +41,7 @@ Sound g_matching_cards_sound = {0};
 Sound g_continue_sound = {0};
 Sound g_coin_sound = {0};
 Sound g_shuffle_sound = {0};
+Sound g_spin_sound = {0};
 GameState g_initial_state = {0};
 void LoadCardAtlas(void)
 {

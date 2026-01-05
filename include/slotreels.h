@@ -25,6 +25,7 @@ typedef struct
 #define BET_3_TOKENS 3
 typedef enum
 {
+    SLOT_STATE_INSERT_TOKENS,
     SLOT_STATE_IDLE,
     SLOT_STATE_SPINNING,
     SLOT_STATE_SHOW_WIN,
@@ -45,7 +46,7 @@ typedef enum
 } PaylineSelection;
 typedef struct
 {
-    Symbol symbols[REELS_COUNT][VISIBLE_SYMBOLS + 2];
+        Symbol symbols[REELS_COUNT][VISIBLE_SYMBOLS + 2];
     float offset_y[REELS_COUNT];
     float target_offset[REELS_COUNT];
     float velocity[REELS_COUNT];
@@ -71,6 +72,7 @@ typedef struct
     int gamble_steps;        // NEW: How many successful doubles (0-5)
     bool gamble_can_gamble;
     bool show_gamble_result;
+    bool has_inserted_tokens;
 } SlotReelsState;
 typedef enum
 {

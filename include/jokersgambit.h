@@ -187,6 +187,7 @@ extern Sound g_matching_cards_sound;
 extern Sound g_continue_sound;
 extern Sound g_coin_sound;
 extern Sound g_shuffle_sound;
+extern Sound g_spin_sound;
 extern Texture2D g_atlas_texture;
 Rectangle HandRect(int player, int idx);
 Rectangle ButtonRect(int player, int idx);
