@@ -68,20 +68,20 @@ void AI_SelectDiscard(GameState *g, int player)
         }
     }
     switch (ai_type)
-{
-case AI_BOB:
-    AI_Bob_SelectDiscard(hand, hand_size, &best_idx);
-    break;
-case AI_THEA:
-    AI_Thea_SelectDiscard(hand, hand_size, &best_idx);
-    break;
-case AI_FLINT:
-    AI_Flint_SelectDiscard(hand, hand_size, &best_idx);
-    break;
-default:  
-    AI_Thea_SelectDiscard(hand, hand_size, &best_idx);
-    break;
-}
+    {
+    case AI_BOB:
+        AI_Bob_SelectDiscard(hand, hand_size, &best_idx);
+        break;
+    case AI_THEA:
+        AI_Thea_SelectDiscard(hand, hand_size, &best_idx);
+        break;
+    case AI_FLINT:
+        AI_Flint_SelectDiscard(hand, hand_size, &best_idx);
+        break;
+    default:
+        AI_Thea_SelectDiscard(hand, hand_size, &best_idx);
+        break;
+    }
     if (player == 1)
     {
         g->p1_discard_idx = best_idx;
@@ -99,7 +99,7 @@ void AI_UpdatePlacementPhase(GameState *g, int player)
     int *hand_size = (player == 1) ? &g->p1_hand_size : &g->p2_hand_size;
     Card(*slots)[3] = (player == 1) ? g->p1_slots : g->p2_slots;
     float *credits = (player == 1) ? &g->p1_credits : &g->p2_credits;
-    float *winnings = (player == 1) ? &g->p1_game_winnings : &g->p2_game_winnings;  // NEW
+    float *winnings = (player == 1) ? &g->p1_game_winnings : &g->p2_game_winnings;
     int *ranks_complete = (player == 1) ? &g->p1_completed_ranks : &g->p2_completed_ranks;
     bool *done_placing = (player == 1) ? &g->p1_done_placing : &g->p2_done_placing;
     if (*done_placing)
@@ -132,7 +132,7 @@ void AI_UpdatePlacementPhase(GameState *g, int player)
                             {
                                 slots[k][s] = c;
                                 *credits += placement_reward;
-                                *winnings += placement_reward;  // NEW: Track in winnings
+                                *winnings += placement_reward;
                                 PlaySound(g_place_sound);
                                 CheckRankCompletionBonus(g, player, k, cards_before);
                                 for (int j = i; j < *hand_size - 1; j++)
@@ -149,7 +149,7 @@ void AI_UpdatePlacementPhase(GameState *g, int player)
         }
         *done_placing = true;
         *credits -= COST_PER_ROUND;
-        *winnings -= COST_PER_ROUND;  // NEW: Track in winnings
+        *winnings -= COST_PER_ROUND;
         PlaySound(g_coin_sound);
         if (player == 1)
             g->p1_ai_done_placing_rounds = true;

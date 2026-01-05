@@ -17,17 +17,13 @@ const char *GetPlayerNameByIndex(const LobbyState *g, int idx)
 }
 void InitAchievements(Account *acc)
 {
-    // We now use the global definitions (g_achievement_defs)
     for (int i = 0; i < MAX_ACHIEVEMENTS; i++)
     {
-        // Copy data from the global definition registry
         strncpy(acc->achievements[i].name, g_achievement_defs[i].name, ACHIEVEMENT_NAME_LEN);
         strncpy(acc->achievements[i].description, g_achievement_defs[i].description, ACHIEVEMENT_DESC_LEN);
-        // Default to locked (LoadAllAccounts will overwrite this if a save exists)
         acc->achievements[i].unlocked = false;
     }
 }
-// For achievement tracking , not called in every game mode
 void UpdateGameStats(LobbyState *g, int account_index, GameType game, double win_amount)
 {
     if (!g || account_index < 0 || account_index >= g->account_count)
@@ -92,7 +88,6 @@ void CheckAchievements(Account *acc, LobbyState *g)
             PlaySound(g_coin_sound);                                                   \
         }                                                                              \
     }
-    // General Play
     CHECK(0, acc->stats.total_games_played >= 10);
     CHECK(1, acc->stats.total_games_played >= 100);
     CHECK(2, acc->stats.total_games_played >= 500);
@@ -100,7 +95,6 @@ void CheckAchievements(Account *acc, LobbyState *g)
     CHECK(4, acc->stats.total_wins >= 100);
     CHECK(5, acc->stats.total_wins >= 500);
     CHECK(6, acc->stats.total_wins >= 1000);
-    // Bankrupt AI opponents
     if (g != NULL)
     {
         for (int i = 0; i < g->account_count; i++)
@@ -119,55 +113,45 @@ void CheckAchievements(Account *acc, LobbyState *g)
     CHECK(10, acc->stats.total_losses >= 10);
     CHECK(11, acc->stats.total_losses >= 50);
     CHECK(12, acc->stats.total_losses >= 100);
-    // Jokers Gambit specific
-    CHECK(13, acc->stats.jg_matched_jokers);                                     // Set this flag when player matches both jokers
-    CHECK(14, acc->stats.jg_fastest_win > 0 && acc->stats.jg_fastest_win <= 20); // Rounds to win
-    // Big single-game payouts (any game)
+    CHECK(13, acc->stats.jg_matched_jokers);
+    CHECK(14, acc->stats.jg_fastest_win > 0 && acc->stats.jg_fastest_win <= 20);
     CHECK(15, acc->stats.highest_single_win >= 1000);
     CHECK(16, acc->stats.highest_single_win >= 5000);
     CHECK(17, acc->stats.highest_single_win >= 10000);
     CHECK(18, acc->stats.highest_single_win >= 50000);
     CHECK(19, acc->stats.highest_single_win >= 100000);
-    // Tokens
     CHECK(20, acc->tokens >= 100);
     CHECK(21, acc->tokens >= 500);
     CHECK(22, acc->tokens >= 1000);
     CHECK(23, acc->tokens >= 10000);
     CHECK(24, acc->tokens >= 100000);
-    // Credits
     CHECK(25, acc->credits >= 50000);
     CHECK(26, acc->credits >= 100000);
     CHECK(27, acc->credits >= 500000);
     CHECK(28, acc->credits >= 1000000);
     CHECK(29, acc->credits >= 10000000);
-    // Blackjack wins
     CHECK(30, acc->stats.bj_wins >= 10);
     CHECK(31, acc->stats.bj_wins >= 50);
     CHECK(32, acc->stats.bj_wins >= 100);
     CHECK(33, acc->stats.bj_wins >= 500);
     CHECK(34, acc->stats.bj_wins >= 1000);
-    // Best win streak (any game)
     CHECK(35, acc->stats.best_win_streak >= 3);
     CHECK(36, acc->stats.best_win_streak >= 5);
     CHECK(37, acc->stats.best_win_streak >= 10);
     CHECK(38, acc->stats.best_win_streak >= 15);
     CHECK(39, acc->stats.best_win_streak >= 20);
-    // Card Slots (assuming you have a game state or recent hand result)
     CHECK(40, acc->stats.cs_had_flush);
     CHECK(41, acc->stats.cs_had_four_kind);
     CHECK(42, acc->stats.cs_had_full_house);
     CHECK(43, acc->stats.cs_had_straight_flush);
     CHECK(44, acc->stats.cs_had_royal_flush);
-    // Slot spins
     CHECK(45, acc->stats.slots_spins >= 100);
     CHECK(46, acc->stats.slots_spins >= 1000);
     CHECK(47, acc->stats.slots_spins >= 5000);
-    // Jokers Gambit: Fill all 5 ranks to win (secret achievement)
     CHECK(48, acc->stats.jg_filled_all_five_ranks);
-    // Completionist: Unlock 49 achievements
     int unlocked_count = 0;
     for (int i = 0; i < MAX_ACHIEVEMENTS - 1; i++)
-    { // Exclude self (49)
+    {
         if (acc->achievements[i].unlocked)
             unlocked_count++;
     }
@@ -193,60 +177,57 @@ bool IsNameValid(const char *name)
 }
 void InitGlobalAchievementDefs(void)
 {
-    // Achievement names
     const char *names[MAX_ACHIEVEMENTS] = {
-        "Novice Player",      // Play 10 Games
-        "Regular",            // Play 100 Games
-        "Veteran",            // Play 500 Games
-        "Beginner Luck",      // Win 10 Games
-        "Champion",           // Win 100 Games
-        "Master",             // Win 500 Games
-        "Grandmaster",        // Win 1000 Games
-        "Flint's Nemesis",    // Bankrupt Flint
-        "Thea's Downfall",    // Bankrupt Thea
-        "Bob's Ruin",         // Bankrupt Bob
-        "Ouch",               // Lose 10 Games
-        "Bad Day",            // Lose 50 Games
-        "Rough Patch",        // Lose 100 Games
-        "Joker Jackpot",      // Match Jokers
-        "Joker Pro",          // Win in Less Than 20 Rounds
-        "Quick Win",          // Win 1,000 in One Go
-        "Big Score",          // Win 5,000 in One Go
-        "Huge Payout",        // Win 10,000 in One Go
-        "Massive Win",        // Win 50,000 in One Go
-        "Jackpot Hunter",     // Win 100,000 in One Go
-        "Piggy Bank",         // Reach 100 Tokens
-        "Deep Pockets",       // Reach 500 Tokens
-        "High Roller",        // Reach 1,000 Tokens
-        "Millionaire",        // Reach 10,000 Tokens
-        "Elite",              // Reach 100k Tokens
-        "Spare Change",       // Reach 50k Credits
-        "Mega Rich",          // Reach 100k Credits
-        "Tycoon",             // Reach 500k Credits
-        "Credit King",        // Reach 1M Credits
-        "Credit Emperor",     // Reach 10M Credits
-        "BJ Rookie",          // Win 10 BJ Hands
-        "BJ Pro",             // Win 50 BJ Hands
-        "BJ Expert",          // Win 100 BJ Hands
-        "Card Counter",       // Win 500 BJ Hands
-        "21 Master",          // Win 1,000 BJ Hands
-        "Heating Up",         // Win 3 in a Row
-        "On Fire",            // Win 5 in a Row
-        "Unstoppable",        // Win 10 in a Row
-        "Godlike",            // Win 15 in a Row
-        "Invincible",         // Win 20 in a Row
-        "Flush Finder",       // Get a Flush
-        "Four of a Kind",     // Get a 4 of a Kind
-        "Full House Hero",    // Get a Full House
-        "Straight Flush Pro", // Get a Straight Flush
-        "Slot King",          // Get a Royal Flush
-        "Lucky Charm",        // Spin 100 Times
-        "High Variance",      // Spin 1,000 Times
-        "Slot Marathon",      // Spin 5,000 Times
-        "Its A Secret",       // Secret achievement
-        "Completionist"       // Unlock 49 Achievements
-    };
-    // Achievement descriptions
+        "Novice Player",
+        "Regular",
+        "Veteran",
+        "Beginner Luck",
+        "Champion",
+        "Master",
+        "Grandmaster",
+        "Flint's Nemesis",
+        "Thea's Downfall",
+        "Bob's Ruin",
+        "Ouch",
+        "Bad Day",
+        "Rough Patch",
+        "Joker Jackpot",
+        "Joker Pro",
+        "Quick Win",
+        "Big Score",
+        "Huge Payout",
+        "Massive Win",
+        "Jackpot Hunter",
+        "Piggy Bank",
+        "Deep Pockets",
+        "High Roller",
+        "Millionaire",
+        "Elite",
+        "Spare Change",
+        "Mega Rich",
+        "Tycoon",
+        "Credit King",
+        "Credit Emperor",
+        "BJ Rookie",
+        "BJ Pro",
+        "BJ Expert",
+        "Card Counter",
+        "21 Master",
+        "Heating Up",
+        "On Fire",
+        "Unstoppable",
+        "Godlike",
+        "Invincible",
+        "Flush Finder",
+        "Four of a Kind",
+        "Full House Hero",
+        "Straight Flush Pro",
+        "Slot King",
+        "Lucky Charm",
+        "High Variance",
+        "Slot Marathon",
+        "Its A Secret",
+        "Completionist"};
     const char *descs[MAX_ACHIEVEMENTS] = {
         "Play 10 Games", "Play 100 Games", "Play 500 Games", "Win 10 Games", "Win 100 Games",
         "Win 500 Games", "Win 1000 Games", "Bankrupt Flint", "Bankrupt Thea", "Bankrupt Bob",
@@ -259,22 +240,19 @@ void InitGlobalAchievementDefs(void)
         "Get a Flush", "Get a 4 of a Kind", "Get a Full House", "Get a Straight Flush", "Get a Royal Flush",
         "Spin 100 Times", "Spin 1,000 Times", "Spin 5,000 Times",
         "Fill All 5 Ranks in Joker's Gambit", "Unlock 49 Achievements"};
-    // Achievement targets (for reference/display)
     int targets[MAX_ACHIEVEMENTS] = {
-        10, 100, 500, 10, 100, 500, 1000,         // Games played/won
-        1, 1, 1,                                  // Bankrupt AI (boolean)
-        10, 50, 100,                              // Losses
-        1, 20,                                    // Joker specific
-        1000, 5000, 10000, 50000, 100000,         // Single win amounts
-        100, 500, 1000, 10000, 100000,            // Token milestones
-        50000, 100000, 500000, 1000000, 10000000, // Credit milestones
-        10, 50, 100, 500, 1000,                   // Blackjack wins
-        3, 5, 10, 15, 20,                         // Win streaks
-        1, 1, 1, 1, 1,                            // Card hands (boolean)
-        100, 1000, 5000,                          // Slot spins
-        1, 49                                     // Secret and completionist
-    };
-    // Populate global array
+        10, 100, 500, 10, 100, 500, 1000,
+        1, 1, 1,
+        10, 50, 100,
+        1, 20,
+        1000, 5000, 10000, 50000, 100000,
+        100, 500, 1000, 10000, 100000,
+        50000, 100000, 500000, 1000000, 10000000,
+        10, 50, 100, 500, 1000,
+        3, 5, 10, 15, 20,
+        1, 1, 1, 1, 1,
+        100, 1000, 5000,
+        1, 49};
     for (int i = 0; i < MAX_ACHIEVEMENTS; i++)
     {
         strncpy(g_achievement_defs[i].name, names[i], ACHIEVEMENT_NAME_LEN - 1);
@@ -285,7 +263,6 @@ void InitGlobalAchievementDefs(void)
     }
     printf("Initialized %d achievement definitions\n", MAX_ACHIEVEMENTS);
 }
-// ============================================================================
 const char *GetMemberStatusString(MEMBERSTATUS status)
 {
     switch (status)
@@ -336,10 +313,9 @@ MEMBERSTATUS CalculateMemberStatus(double credits, double tokens)
         return SUPPORTER;
     return MEMBER;
 }
-// ---------------------------
 void InitAiAccounts(LobbyState *g)
 {
-    strcpy(g->accounts[0].first_name, "BOB"); // AI Accounts 1 to 3
+    strcpy(g->accounts[0].first_name, "BOB");
     strcpy(g->accounts[0].last_name, "");
     g->accounts[0].credits = 10000000.0;
     g->accounts[0].tokens = 100000.0;
@@ -373,9 +349,9 @@ void InitAiAccounts(LobbyState *g)
     g->accounts[2].is_logged_in = false;
     g->accounts[2].member_status = CalculateMemberStatus(g->accounts[2].credits, g->accounts[2].tokens);
 }
-void InitPlayerAccounts(LobbyState *g) // UPDATE InitPlayerAccounts to zero the stats and init achievements
+void InitPlayerAccounts(LobbyState *g)
 {
-    strcpy(g->accounts[3].first_name, "Player1"); // Player Account 1
+    strcpy(g->accounts[3].first_name, "Player1");
     strcpy(g->accounts[3].last_name, "One");
     g->accounts[3].credits = 1000000.0;
     g->accounts[3].tokens = 10000.0;
@@ -389,7 +365,7 @@ void InitPlayerAccounts(LobbyState *g) // UPDATE InitPlayerAccounts to zero the 
     memset(&g->accounts[3].stats, 0, sizeof(PlayerStats));
     memset(g->accounts[3].achievements, 0, sizeof(g->accounts[3].achievements));
     InitAchievements(&g->accounts[3]);
-    strcpy(g->accounts[4].first_name, "Player2"); // Player Account 2
+    strcpy(g->accounts[4].first_name, "Player2");
     strcpy(g->accounts[4].last_name, "Two");
     g->accounts[4].credits = 10000.0;
     g->accounts[4].tokens = 100.0;
@@ -433,7 +409,6 @@ void SaveAllAccounts(const LobbyState *g)
         cJSON_AddNumberToObject(acc, "tokens", g->accounts[i].tokens);
         cJSON_AddNumberToObject(acc, "Member_Status", (int)g->accounts[i].member_status);
         cJSON_AddBoolToObject(acc, "has_insurance", g->accounts[i].has_insurance);
-        // NEW: Save stats object
         cJSON *stats = cJSON_CreateObject();
         cJSON_AddNumberToObject(stats, "total_games_played", g->accounts[i].stats.total_games_played);
         cJSON_AddNumberToObject(stats, "total_wins", g->accounts[i].stats.total_wins);
@@ -549,7 +524,6 @@ void LoadAllAccounts(LobbyState *g)
             g->accounts[count].has_insurance = cJSON_IsTrue(has_insurance);
         g->accounts[count].member_status = CalculateMemberStatus(g->accounts[count].credits, g->accounts[count].tokens);
         g->accounts[count].is_logged_in = false;
-        // NEW: Load stats object
         cJSON *stats = cJSON_GetObjectItem(account, "stats");
         if (stats)
         {
@@ -601,9 +575,8 @@ void LoadAllAccounts(LobbyState *g)
         }
         else
         {
-            // Initialize stats to zero if not present
             memset(&g->accounts[count].stats, 0, sizeof(PlayerStats));
-            g->accounts[count].stats.jg_fastest_win = -1; // Sentinel
+            g->accounts[count].stats.jg_fastest_win = -1;
         }
         count++;
     }
@@ -761,44 +734,37 @@ void UpdateAccountCredits(LobbyState *g)
     for (int i = 0; i < g->account_count; i++)
     {
         Account *acc = &g->accounts[i];
-        // Handle human player bankruptcy
         if (!acc->is_ai && acc->credits <= -25000.0)
         {
             if (acc->has_insurance)
             {
-                // Apply insurance: soft reset with benefits
                 acc->credits = 10000.0;
                 acc->tokens = 10.0;
-                acc->has_insurance = false; // Insurance is consumed
+                acc->has_insurance = false;
                 printf("[INSURANCE] %s %s used bankruptcy protection!\n",
                        acc->first_name, acc->last_name);
             }
             else
             {
-                // Full reset: lose everything
                 acc->credits = 10000.0;
                 acc->tokens = 0.0;
                 acc->has_insurance = false;
-                // Reset all achievements
                 for (int j = 0; j < MAX_ACHIEVEMENTS; j++)
                 {
                     acc->achievements[j].unlocked = false;
                 }
-                // Reset all stats
                 memset(&acc->stats, 0, sizeof(PlayerStats));
-                acc->stats.jg_fastest_win = -1; // Sentinel value
+                acc->stats.jg_fastest_win = -1;
                 printf("[BANKRUPTCY] %s %s hit -$25,000! Total reset.\n",
                        acc->first_name, acc->last_name);
             }
             SaveAllAccounts(g);
             SaveAchievements(g);
         }
-        // Handle AI bankruptcy (reset to default)
         else if (acc->is_ai && acc->credits <= 0.0)
         {
             acc->credits = 1000000.0;
             acc->tokens = 10000.0;
-            // Award bankruptcy achievements to human players
             if (g->p1_account_index >= 0)
             {
                 Account *player = &g->accounts[g->p1_account_index];
@@ -818,7 +784,6 @@ void UpdateAccountCredits(LobbyState *g)
             }
             printf("[AI RESET] %s reset to defaults\n", acc->first_name);
         }
-        // Update member status for all accounts
         acc->member_status = CalculateMemberStatus(acc->credits, acc->tokens);
     }
     SaveAllAccounts(g);
@@ -828,14 +793,14 @@ void LoadAchievements(LobbyState *g)
     FILE *fp = fopen("save/achievements.json", "r");
     if (!fp)
     {
-        InitAchievements(&g->accounts[0]); // Fallback to hardcoded if no file, Assume first human
-        InitAchievements(&g->accounts[1]); // Second human
+        InitAchievements(&g->accounts[0]);
+        InitAchievements(&g->accounts[1]);
         return;
     }
     fseek(fp, 0, SEEK_END);
     long size_long = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    size_t size = (size_t)size_long; // Cast to size_t
+    size_t size = (size_t)size_long;
     char *json_str = (char *)malloc(size + 1);
     fread(json_str, 1, size, fp);
     json_str[size] = '\0';
@@ -855,7 +820,6 @@ void LoadAchievements(LobbyState *g)
             g_achievement_defs[i].target = cJSON_GetObjectItem(item, "target")->valueint;
         }
     }
-    // Load per-human
     cJSON *players = cJSON_GetObjectItem(root, "players");
     if (players)
     {
@@ -871,7 +835,7 @@ void LoadAchievements(LobbyState *g)
                 cJSON *unlocked_array = cJSON_GetObjectItem(player_data, "unlocked");
                 if (cJSON_IsArray(unlocked_array) && cJSON_GetArraySize(unlocked_array) == MAX_ACHIEVEMENTS)
                 {
-                    for (int j = 0; j < MAX_ACHIEVEMENTS; j++) // Set name/desc from defs
+                    for (int j = 0; j < MAX_ACHIEVEMENTS; j++)
                     {
                         g->accounts[i].achievements[j].unlocked = cJSON_IsTrue(cJSON_GetArrayItem(unlocked_array, j));
                         strncpy(g->accounts[i].achievements[j].name, g_achievement_defs[j].name, ACHIEVEMENT_NAME_LEN - 1);
@@ -888,7 +852,7 @@ void SaveAchievements(const LobbyState *g)
 {
     cJSON *root = cJSON_CreateObject();
     cJSON_AddNumberToObject(root, "version", 1.0);
-    cJSON_AddStringToObject(root, "last_updated", "2025-12-23T00:00:00Z"); // Update with current time in real code
+    cJSON_AddStringToObject(root, "last_updated", "2025-12-23T00:00:00Z");
     cJSON *ach_array = cJSON_AddArrayToObject(root, "achievements");
     for (int i = 0; i < MAX_ACHIEVEMENTS; i++)
     {
@@ -911,7 +875,7 @@ void SaveAchievements(const LobbyState *g)
         {
             cJSON_AddItemToArray(unlocked_array, cJSON_CreateBool(g->accounts[i].achievements[j].unlocked));
         }
-        cJSON_AddItemToObject(players, key, player_data); // Add unlock_dates and progress when implemented
+        cJSON_AddItemToObject(players, key, player_data);
         human_idx++;
     }
     char *json_string = cJSON_Print(root);
@@ -928,7 +892,7 @@ void LoadSettings(LobbyState *g)
 {
     FILE *fp = fopen(SETTINGS_FILE, "r");
     if (!fp)
-        return; // Defaults already set
+        return;
     fseek(fp, 0, SEEK_END);
     long size_long = ftell(fp);
     fseek(fp, 0, SEEK_SET);
@@ -947,7 +911,7 @@ void LoadSettings(LobbyState *g)
     if ((item = cJSON_GetObjectItem(root, "ai_delay_mode")) != NULL)
         g->ai_delay_mode = (AIDelayMode)CLAMP(item->valueint, AI_DELAY_FAST, AI_DELAY_SLOW);
     else
-        g->ai_delay_mode = AI_DELAY_NORMAL; // fallback
+        g->ai_delay_mode = AI_DELAY_NORMAL;
     if ((item = cJSON_GetObjectItem(root, "music_enabled")) != NULL)
         g->music_enabled = cJSON_IsTrue(item);
     if ((item = cJSON_GetObjectItem(root, "window_scale")) != NULL)
@@ -955,7 +919,7 @@ void LoadSettings(LobbyState *g)
     if ((item = cJSON_GetObjectItem(root, "is_fullscreen")) != NULL)
         g->is_fullscreen = cJSON_IsTrue(item);
     cJSON_Delete(root);
-    ApplyWindowScale(g); // Apply loaded settings
+    ApplyWindowScale(g);
     if (g->music_enabled)
     {
         PlayMusicStream(g_background_music);

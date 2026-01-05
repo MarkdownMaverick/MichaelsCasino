@@ -1,16 +1,13 @@
 #ifndef SLOTREELS_H
 #define SLOTREELS_H
 #include "raylib.h"
-#include "jokersgambit.h" // For Rank, Suit, GetAtlasSourceRect, CARD_W_SCALED, etc.
-#include "gamepad_sdl.h"  // For XboxBtnPressed
-
-// New: Struct to hold both rank and suit for each symbol
+#include "jokersgambit.h" 
+#include "gamepad_sdl.h"  
 typedef struct
 {
     Rank rank;
     Suit suit;
 } Symbol;
-// Slot Reels Constants
 #define MAX_DECK_SIZE 52
 #define REELS_COUNT 5
 #define VISIBLE_SYMBOLS 3
@@ -22,8 +19,6 @@ typedef struct
 #define SPIN_DURATION 2.5f
 #define STAGGER_DELAY 0.15f
 #define MAX_GAMBLE_STEPS 5
-
-// Bet levels
 #define BET_1_TOKENS 1
 #define BET_2_TOKENS 2
 #define BET_3_TOKENS 3
@@ -61,18 +56,16 @@ typedef struct SlotReelsState {
     float win_timer;
     BetAmount bet_amount;
     PaylineSelection payline_mode;
-    Symbol final_grid[3][REELS_COUNT]; // [line][reel]: 0=middle, 1=top, 2=bottom
+    Symbol final_grid[3][REELS_COUNT]; 
     bool win_lines[3];
-    int selected_button; // 0-6: bet/payline buttons, 7: spin button
-    // Hold Logic
+    int selected_button; 
     bool hold_reel[REELS_COUNT];
-    bool hold_locked[REELS_COUNT]; // NEW: Tracks which reels were held last spin
-    // Gamble Feature
+    bool hold_locked[REELS_COUNT]; 
     double gamble_current;
-    Symbol gamble_card;      // Current card to beat
-    Symbol gamble_next_card; // Result card
-    Symbol gamble_deck[5];   // NEW: Pre-generated 5 cards for gamble sequence
-    int gamble_steps;        // NEW: How many successful doubles (0-5)
+    Symbol gamble_card;      
+    Symbol gamble_next_card; 
+    Symbol gamble_deck[5];   
+    int gamble_steps;        
     bool gamble_can_gamble;
     bool show_gamble_result;
     bool has_inserted_tokens;
@@ -90,11 +83,8 @@ typedef enum
     HAND_STRAIGHT_FLUSH,
     HAND_ROYAL_FLUSH
 } PokerHand;
-// Function prototypes
 void InitSlotReels(SlotReelsState *slot);
 void UpdateSlotReels(LobbyState *core, SlotReelsState *slot);
-// Exposed for UI drawing
 PokerHand EvaluateLine(const Symbol hand[REELS_COUNT]);
 int GetActivePaylineCount(PaylineSelection mode);
-
-#endif // SLOTREELS_H
+#endif 

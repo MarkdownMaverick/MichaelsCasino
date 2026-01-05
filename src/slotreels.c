@@ -1,18 +1,13 @@
 #include "slotreels.h"
-#include "reelsui.h"  // Add this for DrawSlotReels and GetHoldButton
+#include "reelsui.h"
 #include "main.h"
 #include "mainmenu.h"
 #include "useraccount.h"
 #include "jokersgambit.h"
 #include <math.h>
-
-// ============================================================================
-// DECK MANAGEMENT
-// ============================================================================
 static int BuildDeck(Symbol deck[MAX_DECK_SIZE])
 {
     int idx = 0;
-    // Add 52 standard cards: 4 suits x 13 ranks
     for (int suit = 0; suit < 4; suit++)
     {
         for (int rank = 0; rank < 13; rank++)
@@ -22,7 +17,7 @@ static int BuildDeck(Symbol deck[MAX_DECK_SIZE])
             idx++;
         }
     }
-    return idx; // FIXED: Return 52, not 0!
+    return idx;
 }
 static void ShuffleDeck(Symbol deck[MAX_DECK_SIZE], int deck_size)
 {
@@ -34,9 +29,6 @@ static void ShuffleDeck(Symbol deck[MAX_DECK_SIZE], int deck_size)
         deck[j] = temp;
     }
 }
-// ============================================================================
-// RESULT GENERATION
-// ============================================================================
 static void GenerateResult(SlotReelsState *slot)
 {
     Symbol deck[MAX_DECK_SIZE];
@@ -47,19 +39,15 @@ static void GenerateResult(SlotReelsState *slot)
     {
         if (!slot->hold_reel[r])
         {
-            // Deal cards
             slot->final_grid[0][r] = deck[deck_idx % deck_size];
-            deck_idx++; // Top
+            deck_idx++;
             slot->final_grid[1][r] = deck[deck_idx % deck_size];
-            deck_idx++; // Middle
+            deck_idx++;
             slot->final_grid[2][r] = deck[deck_idx % deck_size];
-            deck_idx++; // Bottom
-            // FIXED: Match the drawing loop's indexing!
-            // Drawing shows: symbols[2]=top, symbols[3]=middle, symbols[4]=bottom
-            slot->symbols[r][2] = slot->final_grid[0][r]; // Top (s=0 → idx=2)
-            slot->symbols[r][3] = slot->final_grid[1][r]; // Middle (s=1 → idx=3)
-            slot->symbols[r][4] = slot->final_grid[2][r]; // Bottom (s=2 → idx=4)
-            // Fill buffers above and below
+            deck_idx++;
+            slot->symbols[r][2] = slot->final_grid[0][r];
+            slot->symbols[r][3] = slot->final_grid[1][r];
+            slot->symbols[r][4] = slot->final_grid[2][r];
             slot->symbols[r][0] = deck[deck_idx % deck_size];
             deck_idx++;
             slot->symbols[r][1] = deck[deck_idx % deck_size];
@@ -68,9 +56,6 @@ static void GenerateResult(SlotReelsState *slot)
         slot->target_offset[r] = -SYMBOL_SIZE;
     }
 }
-// ============================================================================
-// POKER HAND EVALUATION
-// ============================================================================
 static bool CheckFlush(const Symbol hand[REELS_COUNT])
 {
     int suit_counts[4] = {0};
@@ -81,7 +66,6 @@ static bool CheckFlush(const Symbol hand[REELS_COUNT])
             suit_counts[hand[i].suit]++;
         }
     }
-    // Check if any suit has all 5 cards
     for (int s = 0; s < 4; s++)
     {
         if (suit_counts[s] >= 5)
@@ -99,18 +83,16 @@ static bool CheckStraight(const Symbol hand[REELS_COUNT])
             has_rank[hand[i].rank - RANK_2] = true;
         }
     }
-    // Check for 5 consecutive ranks - FIXED: Should be <= 8, not <= 13-5
-    for (int i = 0; i <= 8; i++) // 0-8 allows checking sequences starting from 2 through 10
+    for (int i = 0; i <= 8; i++)
     {
         if (has_rank[i] && has_rank[i + 1] && has_rank[i + 2] && has_rank[i + 3] && has_rank[i + 4])
             return true;
     }
-    // Special Case: Ace-Low Straight (A, 2, 3, 4, 5)
     if (has_rank[12] && has_rank[0] && has_rank[1] && has_rank[2] && has_rank[3])
         return true;
     return false;
 }
- PokerHand EvaluateLine(const Symbol hand[REELS_COUNT])
+PokerHand EvaluateLine(const Symbol hand[REELS_COUNT])
 {
     int rank_freq[13] = {0};
     int max_rank_count = 0;
@@ -127,7 +109,6 @@ static bool CheckStraight(const Symbol hand[REELS_COUNT])
             }
         }
     }
-    // Pattern detection
     int pairs = 0, threes = 0, fours = 0;
     for (int i = 0; i < 13; i++)
     {
@@ -141,7 +122,6 @@ static bool CheckStraight(const Symbol hand[REELS_COUNT])
     int best_set = max_rank_count;
     bool is_flush = CheckFlush(hand);
     bool is_straight = CheckStraight(hand);
-    // Return hands in descending order
     if (is_straight && is_flush)
         return HAND_STRAIGHT_FLUSH;
     if (best_set >= 4)
@@ -156,8 +136,6 @@ static bool CheckStraight(const Symbol hand[REELS_COUNT])
         return HAND_THREE_OF_A_KIND;
     if (pairs >= 2)
         return HAND_TWO_PAIR;
-    // NEW: Check for Jacks or Better (pair of J, Q, K, or A)
-    // Ranks: 9=J, 10=Q, 11=K, 12=A
     for (int i = 9; i <= 12; i++)
     {
         if (rank_freq[i] >= 2)
@@ -180,9 +158,6 @@ int GetActivePaylineCount(PaylineSelection mode)
     }
     return 1;
 }
-// ============================================================================
-// PAYOUT TABLE
-// ============================================================================
 static int GetPayoutMultiplier(PokerHand hand)
 {
     switch (hand)
@@ -210,9 +185,6 @@ static int GetPayoutMultiplier(PokerHand hand)
         return 0;
     }
 }
-// ============================================================================
-// ACHIEVEMENT TRACKING
-// ============================================================================
 static void TrackHandAchievements(Account *acc, PokerHand hand)
 {
     if (!acc || acc->is_ai)
@@ -239,20 +211,15 @@ static void TrackHandAchievements(Account *acc, PokerHand hand)
     case HAND_TWO_PAIR:
     case HAND_THREE_OF_A_KIND:
     case HAND_STRAIGHT:
-        // No achievement tracking for these hands
         break;
     default:
         break;
     }
 }
-
-// ============================================================================
-// GAMBLE FEATURE
-// ============================================================================
 static Symbol GetRandomGambleCard(void)
 {
     Symbol s;
-    s.rank = (Rank)(rand() % 13); // 2 through Ace
+    s.rank = (Rank)(rand() % 13);
     s.suit = (Suit)(rand() % 4);
     return s;
 }
@@ -262,8 +229,7 @@ static void InitGamble(SlotReelsState *slot)
     slot->gamble_can_gamble = true;
     slot->show_gamble_result = false;
     slot->gamble_steps = 0;
-    // Generate 6 cards for the gamble sequence
-    slot->gamble_card = GetRandomGambleCard(); // First card (face up)
+    slot->gamble_card = GetRandomGambleCard();
     for (int i = 0; i < 5; i++)
     {
         slot->gamble_deck[i] = GetRandomGambleCard();
@@ -294,48 +260,39 @@ static void ResolveGamble(SlotReelsState *slot, bool guess_high)
     }
     else
     {
-        // FIXED: Player loses everything on wrong guess
         slot->gamble_current = 0.0;
         slot->gamble_can_gamble = false;
         PlaySound(g_discard_sound);
     }
 }
-// ============================================================================
-// UPDATE LOGIC
-// ============================================================================
 static void CleanupGambleState(SlotReelsState *slot)
 {
     memset(slot->hold_reel, 0, sizeof(slot->hold_reel));
-    // Clear win display
     memset(slot->win_lines, 0, sizeof(slot->win_lines));
     slot->total_win_this_spin = 0;
     slot->win_timer = 0.0f;
-    // Clear gamble state completely
     slot->gamble_current = 0;
     slot->gamble_can_gamble = false;
     slot->show_gamble_result = false;
     slot->gamble_steps = 0;
 }
-// ============================================================================
-// GAME INITIALIZATION
-// ============================================================================
 void InitSlotReels(SlotReelsState *slot)
 {
     memset(slot, 0, sizeof(SlotReelsState));
     slot->bet_amount = BET_AMOUNT_1;
     slot->payline_mode = PAYLINE_MIDDLE;
     slot->bet_level = 1;
-    slot->state = SLOT_STATE_INSERT_TOKENS; // FORCE new state
-    slot->has_inserted_tokens = false;      // Explicit flag
-    slot->selected_button = -1;             // Disable selection
+    slot->state = SLOT_STATE_INSERT_TOKENS;
+    slot->has_inserted_tokens = false;
+    slot->selected_button = -1;
     Symbol init_deck[MAX_DECK_SIZE];
-    int deck_size = BuildDeck(init_deck); // Now returns 52
+    int deck_size = BuildDeck(init_deck);
     ShuffleDeck(init_deck, deck_size);
     int deck_idx = 0;
     for (int r = 0; r < REELS_COUNT; r++)
     {
         slot->hold_reel[r] = false;
-        slot->hold_locked[r] = false; // NEW: Track if reel was held last spin
+        slot->hold_locked[r] = false;
         for (int i = 0; i < VISIBLE_SYMBOLS + 2; i++)
         {
             slot->symbols[r][2] = init_deck[deck_idx % deck_size];
@@ -379,19 +336,17 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
                 slot->hold_reel[r] = false;
             }
         }
-        // Exit: B button OR Backspace
         bool back_pressed = IsKeyPressed(KEY_BACKSPACE) || XboxBtnPressed(gamepad, 1);
         if (back_pressed)
         {
             slot->state = SLOT_STATE_INSERT_TOKENS;
             SwitchState(core, STATE_LOBBY);
-            slot->has_inserted_tokens = false; // Explicit flag
+            slot->has_inserted_tokens = false;
             return;
         }
         DrawSlotReels(core, slot);
         return;
     }
-    // Handle hold button clicks when idle
     if (slot->state == SLOT_STATE_IDLE)
     {
         for (int r = 0; r < REELS_COUNT; r++)
@@ -412,7 +367,6 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
             }
         }
     }
-    // FIXED: Decrement win timer to hide green lines after 5 seconds
     if (slot->state == SLOT_STATE_SHOW_WIN)
     {
         if (slot->win_timer > 0.0f)
@@ -426,13 +380,12 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
     }
     if (slot->state == SLOT_STATE_IDLE || slot->state == SLOT_STATE_SHOW_WIN)
     {
-        // Shoulder buttons with line lock
         if ((XboxBtnPressed(gamepad, 4)) || (XboxBtnPressed(gamepad, 5)))
         {
             for (int r = 0; r < REELS_COUNT; r++)
             {
                 slot->hold_reel[r] = false;
-                slot->hold_locked[r] = true; // NEW: Track if reel was held last spin
+                slot->hold_locked[r] = true;
                 slot->offset_y[r] = 0.0f;
             }
         }
@@ -447,7 +400,6 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
             slot->payline_mode = (PaylineSelection)((slot->payline_mode + 1) % 4);
             PlaySound(g_place_sound);
         }
-        // D-pad hold controls
         static int selected_hold = -1;
         if (XboxBtnPressed(gamepad, 13))
         {
@@ -478,7 +430,6 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
                 }
             }
         }
-        // X button: Spin
         if (XboxBtnPressed(gamepad, 2))
         {
             int payline_count = GetActivePaylineCount(slot->payline_mode);
@@ -512,7 +463,6 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
                                  TextFormat("Need %.0f tokens to spin", total_bet));
             }
         }
-        // Y button: Gamble
         if (slot->state == SLOT_STATE_SHOW_WIN && XboxBtnPressed(gamepad, 3))
         {
             if (slot->total_win_this_spin > 0)
@@ -528,7 +478,6 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
             slot->state = SLOT_STATE_GAMBLE;
             PlaySound(g_coin_sound);
         }
-        // FIXED: Exit with proper cleanup
         if (IsKeyPressed(KEY_B) || XboxBtnPressed(gamepad, 1))
         {
             if (slot->state == SLOT_STATE_SHOW_WIN || slot->state == SLOT_STATE_IDLE)
@@ -540,7 +489,7 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
                 }
                 slot->state = SLOT_STATE_INSERT_TOKENS;
                 SwitchState(core, STATE_LOBBY);
-                slot->has_inserted_tokens = false; // Explicit flag
+                slot->has_inserted_tokens = false;
                 CleanupGambleState(slot);
             }
         }
@@ -654,13 +603,11 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
                 SaveAllAccounts(core);
             }
             slot->state = SLOT_STATE_SHOW_WIN;
-            slot->win_timer = 5.0f; // FIXED: Changed from 4.0f to 5.0f
+            slot->win_timer = 5.0f;
         }
     }
-    // FIXED: Gamble state with exploit prevention
     if (slot->state == SLOT_STATE_GAMBLE)
     {
-        // Fold button - FIXED to prevent exploit
         if (IsKeyPressed(KEY_F) || XboxBtnPressed(gamepad, 1))
         {
             if (player && slot->gamble_current > 0)
@@ -675,7 +622,6 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
             {
                 ShowNotification(core, "FOLD", "Nothing to collect");
             }
-            // CRITICAL: Clean up state before returning to idle
             CleanupGambleState(slot);
             slot->state = SLOT_STATE_IDLE;
             return;
@@ -687,15 +633,12 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
             {
                 if (slot->gamble_current > 0 && slot->gamble_can_gamble)
                 {
-                    // Won and can continue gambling
                     slot->show_gamble_result = false;
                 }
                 else
                 {
-                    // Lost or maxed out
                     if (player && slot->gamble_current > 0)
                     {
-                        // Won max or chose to stop
                         player->tokens += slot->gamble_current;
                         UpdateGameStats(core, core->p1_account_index, GAME_SLOT_REELS, slot->gamble_current);
                         CheckAchievements(player, core);
@@ -704,10 +647,8 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
                     }
                     else if (player)
                     {
-                        // Lost the gamble
                         ShowNotification(core, "GAMBLE LOST", "All winnings forfeited!");
                     }
-                    // CRITICAL: Clean up before returning
                     CleanupGambleState(slot);
                     slot->state = SLOT_STATE_IDLE;
                 }
@@ -715,7 +656,6 @@ void UpdateSlotReels(LobbyState *core, SlotReelsState *slot)
         }
         else
         {
-            // High/Low choice
             if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_H) || XboxBtnPressed(gamepad, 11))
             {
                 ResolveGamble(slot, true);

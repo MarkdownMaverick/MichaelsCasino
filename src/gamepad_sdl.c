@@ -1,18 +1,14 @@
 #include "gamepad_sdl.h"
 #define P1_PAD 0
 #define P2_PAD 1
-
-
 static GamepadSDL gamepads[MAX_GAMEPADS] = {0};
 static bool sdl_initialized = false;
-// Initialize SDL gamepad system
 void InitGamepadSDL(void)
 {
     if (!sdl_initialized)
     {
         SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_JOYSTICK);
         sdl_initialized = true;
-        // Scan for connected controllers
         for (int i = 0; i < SDL_NumJoysticks() && i < MAX_GAMEPADS; i++)
         {
             if (SDL_IsGameController(i))
@@ -28,21 +24,18 @@ void InitGamepadSDL(void)
         }
     }
 }
-// Check if gamepad is available
 bool IsGamepadAvailableSDL(int gamepad)
 {
     if (gamepad < 0 || gamepad >= MAX_GAMEPADS)
         return false;
     return gamepads[gamepad].connected;
 }
-// Get gamepad name
 const char *GetGamepadNameSDL(int gamepad)
 {
     if (gamepad < 0 || gamepad >= MAX_GAMEPADS || !gamepads[gamepad].connected)
         return "No Controller";
     return gamepads[gamepad].name;
 }
-// Button checks (current state)
 bool IsGamepadButtonDownSDL(int gamepad, int button)
 {
     if (!IsGamepadAvailableSDL(gamepad))
@@ -100,7 +93,6 @@ bool IsGamepadButtonDownSDL(int gamepad, int button)
     }
     return SDL_GameControllerGetButton(gamepads[gamepad].controller, sdl_button) != 0;
 }
-// Button pressed (edge detection - true only on the frame the button was pressed)
 bool XboxBtnPressed(int gamepad, int button)
 {
     if (!IsGamepadAvailableSDL(gamepad))
@@ -109,7 +101,6 @@ bool XboxBtnPressed(int gamepad, int button)
         return false;
     return gamepads[gamepad].button_state[button] && !gamepads[gamepad].button_prev[button];
 }
-// Axis value (normalized to -1.0 to 1.0)
 float GetGamepadAxisSDL(int gamepad, int axis)
 {
     if (!IsGamepadAvailableSDL(gamepad))
@@ -140,10 +131,8 @@ float GetGamepadAxisSDL(int gamepad, int axis)
     }
     return (float)SDL_GameControllerGetAxis(gamepads[gamepad].controller, sdl_axis) / 32767.0f;
 }
-// Update gamepad connections (call once per frame)
 void UpdateGamepadSDL(void)
 {
-    // Save previous button states
     for (int i = 0; i < MAX_GAMEPADS; i++)
     {
         if (gamepads[i].connected)
@@ -154,7 +143,6 @@ void UpdateGamepadSDL(void)
             }
         }
     }
-    // Handle SDL events
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
@@ -186,7 +174,6 @@ void UpdateGamepadSDL(void)
             }
         }
     }
-    // Update current button states
     for (int i = 0; i < MAX_GAMEPADS; i++)
     {
         if (gamepads[i].connected)

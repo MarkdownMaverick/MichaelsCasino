@@ -8,7 +8,6 @@
 Music g_background_music = {0};
 Texture2D g_achievements_atlas = {0};
 SlotReelsState g_slot_state = {0};
-// Dynamic screen dimensions
 float SCREEN_W = DEFAULT_SCREEN_W;
 float SCREEN_H = DEFAULT_SCREEN_H;
 float CENTER_X = DEFAULT_SCREEN_W / 2.0f;
@@ -48,14 +47,12 @@ void ToggleAppFullscreen(LobbyState *g)
 {
     if (g->is_fullscreen)
     {
-        // Exit fullscreen
         ToggleBorderlessWindowed();
         g->is_fullscreen = false;
         ApplyWindowScale(g);
     }
     else
     {
-        // Enter fullscreen
         int monitor = GetCurrentMonitor();
         SCREEN_W = (float)GetMonitorWidth(monitor);
         SCREEN_H = (float)GetMonitorHeight(monitor);
@@ -100,7 +97,6 @@ void DrawModeSelection(const LobbyState *g)
 void UpdateModeSelection(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
-    // === INPUT ===
     if (IsKeyPressed(KEY_LEFT) || XboxBtnPressed(gamepad, 13))
     {
         g->menu_selection--;
@@ -118,14 +114,12 @@ void UpdateModeSelection(LobbyState *g, Vector2 mouse)
         SwitchState(g, STATE_LOBBY);
         return;
     }
-    // === SELECTION ===
     bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0));
-    // === MOUSE INPUT ===
     Rectangle mode_rects[4];
-    mode_rects[0] = (Rectangle){CENTER_X - 450, 300, 300, 120}; // PVP
-    mode_rects[1] = (Rectangle){CENTER_X - 150, 300, 300, 120}; // PvAI
-    mode_rects[2] = (Rectangle){CENTER_X + 150, 300, 300, 120}; // AIvAI
-    mode_rects[3] = (Rectangle){CENTER_X + 450, 300, 300, 120}; // BETTING
+    mode_rects[0] = (Rectangle){CENTER_X - 450, 300, 300, 120};
+    mode_rects[1] = (Rectangle){CENTER_X - 150, 300, 300, 120};
+    mode_rects[2] = (Rectangle){CENTER_X + 150, 300, 300, 120};
+    mode_rects[3] = (Rectangle){CENTER_X + 450, 300, 300, 120};
     for (int i = 0; i < 4; i++)
     {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, mode_rects[i]))
@@ -138,20 +132,20 @@ void UpdateModeSelection(LobbyState *g, Vector2 mouse)
     {
         switch (g->menu_selection)
         {
-        case 0:                                // PLAYER vs PLAYER
-            SwitchState(g, STATE_MULTIPLAYER); // Go to choice screen first
+        case 0:
+            SwitchState(g, STATE_MULTIPLAYER);
             break;
-        case 1: // Player vs AI
+        case 1:
             g->game_state->mode = MODE_PVAI;
             InitGame(g);
             SwitchState(g, STATE_AI_SELECTION);
             break;
-        case 2: // AI vs AI (Fun Mode)
+        case 2:
             g->game_state->mode = MODE_AIVAI;
             InitGame(g);
             SwitchState(g, STATE_AI_SELECTION);
             break;
-        case 3: // BETTING MODE
+        case 3:
             g->game_state->mode = MODE_BETTING;
             SwitchState(g, STATE_BETTING_SETUP);
             break;
@@ -182,7 +176,6 @@ void DrawAISelection(const LobbyState *g)
 void DrawAIP2Selection(const LobbyState *g)
 {
     DrawText("SELECT AI FOR P2", (int)(CENTER_X - 300.0f), 100, 70, GOLD);
-    // Show P1 selection
     const char *p1_ai_name = (g->selected_p1_ai == AI_BOB) ? "BOB" : (g->selected_p1_ai == AI_THEA) ? "THEA"
                                                                                                     : "FLINT";
     DrawText(TextFormat("P1: %s", p1_ai_name), (int)(CENTER_X - 150), 180, 40, LIME);
@@ -195,7 +188,6 @@ void DrawAIP2Selection(const LobbyState *g)
     for (int i = 0; i < 3; i++)
     {
         bool selected = (g->menu_selection == i);
-        // Disable if same as P1
         bool is_p1 = ((i == 0 && g->selected_p1_ai == AI_BOB) ||
                       (i == 1 && g->selected_p1_ai == AI_THEA) ||
                       (i == 2 && g->selected_p1_ai == AI_FLINT));
@@ -214,7 +206,6 @@ void DrawAIP2Selection(const LobbyState *g)
 void UpdateAISelection(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
-    // Navigation...
     if (IsKeyPressed(KEY_LEFT) || XboxBtnPressed(gamepad, 13))
     {
         g->menu_selection--;
@@ -252,7 +243,6 @@ void UpdateAISelection(LobbyState *g, Vector2 mouse)
         g->game_state->selected_opponent_ai = selected_ai;
         if (g->game_state->mode == MODE_PVAI)
         {
-            // Player vs AI: P2 becomes the selected AI
             for (int i = 0; i < g->account_count; i++)
             {
                 if (g->accounts[i].is_ai && g->accounts[i].ai_type == selected_ai)
@@ -266,9 +256,8 @@ void UpdateAISelection(LobbyState *g, Vector2 mouse)
         }
         else if (g->game_state->mode == MODE_AIVAI)
         {
-            // AI vs AI: Save P1 selection and move to P2 selection
             g->selected_p1_ai = selected_ai;
-            g->menu_selection = 0; // Reset for P2 selection
+            g->menu_selection = 0;
             SwitchState(g, STATE_AI_P2_SELECTION);
         }
     }
@@ -276,7 +265,6 @@ void UpdateAISelection(LobbyState *g, Vector2 mouse)
 void UpdateAIP2Selection(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
-    // === KEYBOARD INPUT ===
     if (IsKeyPressed(KEY_LEFT) || XboxBtnPressed(gamepad, 13))
     {
         g->menu_selection--;
@@ -294,9 +282,7 @@ void UpdateAIP2Selection(LobbyState *g, Vector2 mouse)
         SwitchState(g, STATE_AI_SELECTION);
         return;
     }
-    // === SELECTION ===
     bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0));
-    // === MOUSE INPUT ===
     Rectangle ai_rects[3];
     ai_rects[0] = (Rectangle){CENTER_X - 450, 300, 300, 120};
     ai_rects[1] = (Rectangle){CENTER_X - 150, 300, 300, 120};
@@ -313,13 +299,11 @@ void UpdateAIP2Selection(LobbyState *g, Vector2 mouse)
     {
         AIType selected_ai = (g->menu_selection == 0) ? AI_BOB : (g->menu_selection == 1) ? AI_THEA
                                                                                           : AI_FLINT;
-        // Can't select same AI as P1
         if (selected_ai == g->selected_p1_ai)
         {
-            return; // Do nothing
+            return;
         }
         g->selected_p2_ai = selected_ai;
-        // Login both AIs
         for (int i = 0; i < g->account_count; i++)
         {
             if (g->accounts[i].is_ai && g->accounts[i].ai_type == g->selected_p1_ai)
@@ -342,13 +326,10 @@ void UpdateAIP2Selection(LobbyState *g, Vector2 mouse)
 }
 int main(void)
 {
-
-    // Initialize window
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow((int)SCREEN_W, (int)SCREEN_H, "Michael's Casino");
     SetTargetFPS(60);
     InitGamepadSDL();
-    // Initialize audio
     InitAudioDevice();
     g_background_music = LoadMusicStream("sfx/track.mp3");
     g_coin_sound = LoadSound("sfx/coin.wav");
@@ -361,12 +342,9 @@ int main(void)
     g_matching_cards_sound = LoadSound("sfx/matchingcards.wav");
     g_continue_sound = LoadSound("sfx/continue.wav");
     g_shuffle_sound = LoadSound("sfx/shuffle.wav");
-
     g_spin_sound = LoadSound("sfx/spin.wav");
-            SetSoundVolume(g_spin_sound, 0.2f);
-
+    SetSoundVolume(g_spin_sound, 0.2f);
     g_achievements_atlas = LoadTexture("atlas/achievements.png");
-    // Initialize game state
     LobbyState game_state = {0};
     game_state.game_state = (GameState *)malloc(sizeof(GameState));
     if (!game_state.game_state)
@@ -382,7 +360,7 @@ int main(void)
     game_state.p1_account_index = -1;
     game_state.p2_account_index = -1;
     game_state.cover_p2_cards = true;
-    game_state.ai_delay_mode = AI_DELAY_NORMAL; // Default 1.0s
+    game_state.ai_delay_mode = AI_DELAY_NORMAL;
     game_state.music_enabled = true;
     game_state.window_scale = SCALE_100;
     game_state.is_fullscreen = false;
@@ -395,7 +373,7 @@ int main(void)
     game_state.achievement_scroll_row = 0;
     game_state.editing_name = false;
     game_state.net_socket = -1;
-    game_state.net_listen_socket = -1; // NEW
+    game_state.net_listen_socket = -1;
     game_state.net_connected = false;
     memset(game_state.edit_first_name, 0, sizeof(game_state.edit_first_name));
     memset(game_state.edit_last_name, 0, sizeof(game_state.edit_last_name));
@@ -410,23 +388,21 @@ int main(void)
     printf("Michael's Casino Initialized\n");
     printf("Loaded %d accounts\n", game_state.account_count);
     printf("Loaded %d leaderboard entries\n", game_state.leaderboard_count);
-    // Start background music
     if (game_state.music_enabled)
     {
         SetMusicVolume(g_background_music, 0.6f);
         PlayMusicStream(g_background_music);
     }
     LoadCardAtlas();
-    // Main game loop
     while (!WindowShouldClose())
     {
         UpdateGamepadSDL();
         Vector2 mouse = GetMousePosition();
-        if (game_state.music_enabled) // Update music
+        if (game_state.music_enabled)
         {
             UpdateMusicStream(g_background_music);
         }
-        int gamepad = GetActiveGamepad(); // Global fullscreen toggle
+        int gamepad = GetActiveGamepad();
         if (IsKeyPressed(KEY_F11) || (gamepad >= 0 && XboxBtnPressed(gamepad, 8)))
         {
             ToggleAppFullscreen(&game_state);
@@ -490,7 +466,7 @@ int main(void)
         default:
             break;
         }
-        BeginDrawing(); //   DRAW STATES
+        BeginDrawing();
         ClearBackground(DARKGRAY);
         switch (game_state.state)
         {
@@ -573,7 +549,6 @@ int main(void)
     UnloadTexture(g_achievements_atlas);
     UnloadMusicStream(g_background_music);
     free(game_state.game_state);
-
     CloseAudioDevice();
     CloseWindow();
     return 0;

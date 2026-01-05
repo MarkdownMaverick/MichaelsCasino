@@ -326,7 +326,7 @@ void DrawPlayerUI(LobbyState *core, const GameState *g, int player)
     float temp_credits = (player == 1) ? g->p1_temp_credits : g->p2_temp_credits;
     int ranks = (player == 1) ? g->p1_completed_ranks : g->p2_completed_ranks;
     Color neon_color = (player == 1) ? SKYBLUE : (Color){255, 100, 100, 255};
-    const char *player_name = GetPlayerName(core, player); // FIXED: removed + 1
+    const char *player_name = GetPlayerName(core, player);
     float margin_x = 25.0f;
     float margin_y = 25.0f;
     Rectangle screen_rect = {
@@ -343,7 +343,6 @@ void DrawPlayerUI(LobbyState *core, const GameState *g, int player)
     text_y += line_h;
     DrawText(TextFormat("CREDITS: $%.2f", credits), text_x, text_y, 20, neon_color);
     text_y += line_h;
-    // Temp Credits Display
     DrawText(TextFormat("GAME BALANCE: $%.2f", temp_credits), text_x, text_y, 20, YELLOW);
     text_y += line_h;
     DrawText(TextFormat("COMPLETED: %d/%d ROUND #%d...", ranks, KEYCARDS, g->total_rounds), text_x, text_y, 20, neon_color);
@@ -354,7 +353,6 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
     int gamepad = GetActiveGamepad();
     DrawPlayerUI(core, g, 1);
     DrawPlayerUI(core, g, 2);
-    // Draw keycards and slots
     for (int k = 0; k < KEYCARDS; k++)
     {
         DrawCard(g->keycards[k], KeyCardRect(k), RAYWHITE);
@@ -375,15 +373,11 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
                 DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), slot_rect, (Vector2){0, 0}, 0.0f, Fade(WHITE, 0.25f));
         }
     }
-    // Draw player hands
     for (int i = 0; i < HAND_SIZE; i++)
     {
         Rectangle p1_rect = HandRect(1, i);
         if (i < g->p1_hand_size)
         {
-            // Cover P1 cards if:
-            // - cover_p1_cards is enabled, OR
-            // - we're the client in a network game
             bool should_cover_p1 = g->cover_p1_cards ||
                                    (core->net_connected && !core->is_host);
             if (should_cover_p1)
@@ -397,7 +391,6 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
                 DrawCard(g->player1_hand[i], p1_rect, tint);
             }
         }
-        // ... P1 button drawing ...
         Rectangle p2_rect = HandRect(2, i);
         if (i < g->p2_hand_size)
         {
@@ -414,9 +407,7 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
                 DrawCard(g->player2_hand[i], p2_rect, tint);
             }
         }
-        // ... P2 button drawing ...
     }
-    // Draw discard piles
     Rectangle d1_rect = DiscardPileRect(1);
     if (g->revealed_p1.is_valid)
         DrawCard(g->revealed_p1, d1_rect, RAYWHITE);
@@ -428,7 +419,6 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
     else
         DrawTexturePro(g_atlas_texture, GetAtlasBackCard(), d2_rect, (Vector2){0, 0}, 0.0f, WHITE);
     DrawContinueButtons(g, mouse);
-    // Keyboard shortcuts
     if (IsKeyPressed(KEY_COMMA) || (XboxBtnPressed(gamepad, 6)))
     {
         AutoLogout(core);
@@ -437,15 +427,11 @@ void DrawGameLayout(LobbyState *core, const GameState *g)
 }
 void WhereDoiSit(LobbyState *g)
 {
-    // Store the currently logged-in player's account
     int my_account = g->p1_account_index;
-    // Move them to P2 position
     g->p2_account_index = my_account;
-    g->p1_account_index = -1; // P1 will be the remote host
-    // Client controls P2 only
-    g->p1_input_device = -1; // Disable P1 input (remote)
-    g->p2_input_device = 0;  // Enable P2 input (local)
-    // Mark as client
+    g->p1_account_index = -1;
+    g->p1_input_device = -1;
+    g->p2_input_device = 0;
     g->is_host = false;
     TraceLog(LOG_INFO, "Client moved to P2 seat. P1 is remote (host).");
 }
@@ -503,16 +489,13 @@ void DrawGameOver(LobbyState *core, GameState *g)
         snprintf(win_text, sizeof(win_text), "The Winner: %s!", winner_name);
         DrawText(win_text, (int)(CENTER_X - (float)MeasureText(win_text, 90) / 2.0f), (int)(SCREEN_H / 2 - 250), 90, GOLD);
         DrawText("CONGRATULATIONS!", (int)(CENTER_X - (float)MeasureText("CONGRATULATIONS!", 60) / 2.0f), (int)(SCREEN_H / 2 - 150), 60, YELLOW);
-        // Final Score Display
         float winner_score = (g->winner == 1) ? g->final_score_p1 : g->final_score_p2;
-        // Note: This score is calculated in State Machine, just display it
         DrawText(TextFormat("Final Result: $%.2f", winner_score), (int)(CENTER_X - (float)MeasureText(TextFormat("Final Result: $%.2f", winner_score), 40) / 2.0f), (int)(SCREEN_H / 2 - 50), 40, LIME);
         Rectangle menu_btn = {CENTER_X - 140, SCREEN_H - 150, 280, 80};
         DrawRectangleRec(menu_btn, CheckCollisionPointRec(mouse, menu_btn) ? SKYBLUE : BLUE);
         DrawText("MAIN MENU", (int)(menu_btn.x + 40), (int)(menu_btn.y + 25), 30, WHITE);
     }
 }
-// Jokers gambit
 float GetRewardMultiplier(int completed_ranks)
 {
     if (completed_ranks >= 2)
@@ -630,7 +613,6 @@ void ResolveDiscards(GameState *g)
     Card d2 = g->revealed_p2;
     bool j1 = (d1.rank == RANK_JOKER);
     bool j2 = (d2.rank == RANK_JOKER);
-    // Apply costs to TEMP credits
     g->p1_temp_credits -= COST_DISCARD;
     g->p2_temp_credits -= COST_DISCARD;
     float mult1 = GetRewardMultiplier(g->p1_completed_ranks);
@@ -750,23 +732,17 @@ void ProcessPendingDiscards(GameState *g)
 }
 void InitGame(LobbyState *core)
 {
-    GameState *g = core->game_state; // Use pointer
-    // Save references that we need to preserve
+    GameState *g = core->game_state;
     GameMode saved_mode = g->mode;
     AIType saved_opponent_ai = g->selected_opponent_ai;
-    // Zero out entire game state
     memset(g, 0, sizeof(GameState));
-    // Restore preserved data
     g->mode = saved_mode;
     g->selected_opponent_ai = saved_opponent_ai;
-    // Copy account data FROM LobbyState TO GameState
     memcpy(g->accounts, core->accounts, sizeof(core->accounts));
     g->account_count = core->account_count;
     g->p1_account_index = core->p1_account_index;
     g->p2_account_index = core->p2_account_index;
-    // Copy settings from LobbyState
     g->cover_p2_cards = core->cover_p2_cards;
-    // Set AI delay based on mode
     switch (core->ai_delay_mode)
     {
     case AI_DELAY_FAST:
@@ -782,13 +758,10 @@ void InitGame(LobbyState *core)
         g->ai_move_delay = 1.0f;
         break;
     }
-    // Initialize TEMP CREDITS
     g->p1_temp_credits = P1_TEMP_CREDITS_START;
     g->p2_temp_credits = P2_TEMP_CREDITS_START;
-    // Initialize keycards
     Rank keys[5] = {RANK_ACE, RANK_KING, RANK_QUEEN, RANK_JACK, RANK_10};
     int idx = 0;
-    // Build deck (all cards except keycards)
     for (int s = 0; s < 4; s++)
     {
         for (int r = 0; r < 13; r++)
@@ -806,7 +779,6 @@ void InitGame(LobbyState *core)
             }
         }
     }
-    // Add jokers
     for (int i = 0; i < 2; i++)
     {
         g->deck[idx].rank = RANK_JOKER;
@@ -818,7 +790,6 @@ void InitGame(LobbyState *core)
     }
     g->current_deck_size = idx;
     g->top_card_index = idx - 1;
-    // Initialize keycards
     for (int i = 0; i < KEYCARDS; i++)
     {
         g->keycards[i].rank = keys[i];
@@ -826,7 +797,6 @@ void InitGame(LobbyState *core)
         g->keycards[i].is_valid = true;
         g->keycards[i].texture = (Texture2D){0};
     }
-    // Shuffle deck
     for (int i = g->top_card_index; i > 0; i--)
     {
         int j = rand() % (i + 1);
@@ -834,14 +804,12 @@ void InitGame(LobbyState *core)
         g->deck[i] = g->deck[j];
         g->deck[j] = t;
     }
-    // Deal initial hands
     for (int i = 0; i < HAND_SIZE; i++)
     {
         g->player1_hand[i] = DrawFromDeck(g);
         g->player2_hand[i] = DrawFromDeck(g);
     }
     g->p1_hand_size = g->p2_hand_size = HAND_SIZE;
-    // Set Initial Account Credits for Display
     if (g->p1_account_index != -1)
     {
         g->p1_credits = (float)g->accounts[g->p1_account_index].credits;
@@ -873,16 +841,13 @@ void InitGame(LobbyState *core)
 }
 void RestartGameKeepingAccounts(LobbyState *core)
 {
-    // Sync updated account data back to LobbyState before restarting
     memcpy(core->accounts, core->game_state->accounts, sizeof(core->accounts));
     core->account_count = core->game_state->account_count;
     InitGame(core);
 }
-// Add leaderboard entry for completed game
 void AddLeaderboardEntry(LobbyState *core, int winner)
 {
     GameState *g = core->game_state;
-    // PvP matches are friendly - NO Leaderboard entry
     if (g->mode == MODE_PVP)
         return;
     if (core->leaderboard_count >= MAX_LEADERBOARD_ENTRIES)
@@ -906,7 +871,7 @@ void AddLeaderboardEntry(LobbyState *core, int winner)
     const char *p2_name_str = GetPlayerName(core, 2);
     snprintf(e->entry_name, 64, "%s_vs_%s", p1_name_str, p2_name_str);
     snprintf(e->winner_name, 32, "%s", (winner == 1) ? p1_name_str : p2_name_str);
-    float winner_temp = (winner == 1) ? g->p1_temp_credits : g->p2_temp_credits; // For Leaderboard, we track the TEMP credits earned (plus bonus)
+    float winner_temp = (winner == 1) ? g->p1_temp_credits : g->p2_temp_credits;
     float winner_bonus = REWARD_MATCH * (float)g->total_rounds;
     e->total_winnings = winner_temp + winner_bonus;
     e->final_credits = winner_temp;
@@ -916,9 +881,8 @@ void AddLeaderboardEntry(LobbyState *core, int winner)
     time_t timer;
     time(&timer);
     struct tm *tm_info = localtime(&timer);
-    strftime(e->timestamp, 32, "%m/%d/%Y %H:%M", tm_info); // Added %H:%M for time
+    strftime(e->timestamp, 32, "%m/%d/%Y %H:%M", tm_info);
     core->leaderboard_count++;
-    // Sort by winnings (descending)
     for (int i = 0; i < core->leaderboard_count - 1; i++)
     {
         for (int j = i + 1; j < core->leaderboard_count; j++)
@@ -933,9 +897,6 @@ void AddLeaderboardEntry(LobbyState *core, int winner)
     }
     SaveLeaderboard(core);
 }
-// ============================================================================
-//   NEW HELPER: Process all pending packets
-// ============================================================================
 void ProcessNetworkPackets(LobbyState *core, GameState *g)
 {
     NetPacket pkt;
@@ -944,7 +905,6 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
         switch (pkt.type)
         {
         case PKT_SEED:
-            // Client receives seed from host
             if (!core->is_host)
             {
                 core->rng_seed = (unsigned int)pkt.data;
@@ -954,7 +914,6 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
             }
             break;
         case PKT_P1_DISCARD:
-            // Client receives host's discard choice
             if (!core->is_host)
             {
                 g->p1_discard_idx = pkt.data;
@@ -964,7 +923,6 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
             }
             break;
         case PKT_P2_DISCARD:
-            // Host receives client's discard choice
             if (core->is_host)
             {
                 g->p2_discard_idx = pkt.data;
@@ -974,7 +932,6 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
             }
             break;
         case PKT_P1_PLACE:
-            // Client receives host's placement: data = (hand_idx * 100) + key_idx
             if (!core->is_host)
             {
                 int hand_idx = pkt.data / 100;
@@ -982,24 +939,20 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
                 if (hand_idx >= 0 && hand_idx < g->p1_hand_size)
                 {
                     Card c = g->player1_hand[hand_idx];
-                    // Find empty slot for this rank
                     for (int s = 0; s < 3; s++)
                     {
                         if (!g->p1_slots[key_idx][s].is_valid)
                         {
-                            // Calculate bonus BEFORE placement
                             int cards_before = 0;
                             for (int sc = 0; sc < 3; sc++)
                             {
                                 if (g->p1_slots[key_idx][sc].is_valid)
                                     cards_before++;
                             }
-                            // Place card
                             g->p1_slots[key_idx][s] = c;
                             float mult = GetRewardMultiplier(g->p1_completed_ranks);
                             g->p1_temp_credits += REWARD_PLACEMENT * mult;
                             CheckRankCompletionBonus(g, 1, key_idx, cards_before);
-                            // Remove from hand and draw new
                             for (int j = hand_idx; j < g->p1_hand_size - 1; j++)
                             {
                                 g->player1_hand[j] = g->player1_hand[j + 1];
@@ -1014,7 +967,6 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
             }
             break;
         case PKT_P2_PLACE:
-            // Host receives client's placement
             if (core->is_host)
             {
                 int hand_idx = pkt.data / 100;
@@ -1050,7 +1002,6 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
             }
             break;
         case PKT_PASS:
-            // Receive pass notification
             if (core->is_host)
             {
                 g->p2_done_placing = true;
@@ -1068,43 +1019,34 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
         case PKT_HANDSHAKE:
             if (core->is_host)
             {
-                // Host receives client's handshake
                 int client_version = pkt.data;
-                int host_version = 1; // Your protocol version
+                int host_version = 1;
                 if (client_version == host_version)
                 {
                     TraceLog(LOG_INFO, "Handshake successful (version %d)", client_version);
-                    // Send confirmation back
                     SendPacket(core, PKT_HANDSHAKE, host_version);
                 }
                 else
                 {
                     TraceLog(LOG_ERROR, "Version mismatch! Host=%d, Client=%d",
                              host_version, client_version);
-                    // Should disconnect here
                     CloseConnection(core);
                 }
             }
             else
             {
-                // Client receives host's handshake response
                 TraceLog(LOG_INFO, "Handshake confirmed by host");
             }
             break;
         case PKT_DISCARD_RESOLVE:
-            // This is actually OPTIONAL since ResolveDiscards() is deterministic
-            // if both sides have the same RNG seed. But for extra safety:
             if (!core->is_host)
             {
-                // Client receives host's discard resolution
                 int p1_idx = pkt.data / 10;
                 int p2_idx = pkt.data % 10;
-                // Verify our indices match
                 if (p1_idx != g->p1_discard_idx || p2_idx != g->p2_discard_idx)
                 {
                     TraceLog(LOG_ERROR, "Discard mismatch! Expected P1=%d,P2=%d, Got P1=%d,P2=%d",
                              p1_idx, p2_idx, g->p1_discard_idx, g->p2_discard_idx);
-                    // Resync or disconnect
                 }
             }
             break;
@@ -1112,8 +1054,6 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
         {
             int requesting_player = pkt.data;
             TraceLog(LOG_INFO, "P%d requested restart", requesting_player);
-            // Show confirmation dialog or auto-restart
-            // For now, auto-restart:
             RestartGameKeepingAccounts(core);
             g->state = STATE_SELECT_DISCARD;
             ShowNotification(core, "GAME RESTARTED",
@@ -1122,13 +1062,9 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
         break;
         case PKT_PLAYER_NAME:
         {
-            // NOTE: This assumes both clients have the same accounts.json file
-            // For a real implementation, you'd send the actual name string
             int account_idx = pkt.data;
             if (core->is_host)
             {
-                // Host receives client's account index
-                // Client is P2, so update P2's account
                 if (account_idx >= 0 && account_idx < core->account_count)
                 {
                     core->p2_account_index = account_idx;
@@ -1139,8 +1075,6 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
             }
             else
             {
-                // Client receives host's account index
-                // Host is P1, so update P1's account
                 if (account_idx >= 0 && account_idx < core->account_count)
                 {
                     core->p1_account_index = account_idx;
@@ -1153,27 +1087,18 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
         break;
         case PKT_CLIENT_INFO:
         {
-            // This is more comprehensive than PKT_PLAYER_NAME
-            // You could encode multiple values:
-            // - Account index
-            // - Ready status
-            // - Settings preferences
-            // Example: Pack account_idx and ready_status
-            int account_idx = pkt.data & 0xFF;      // Lower 8 bits
-            bool is_ready = (pkt.data >> 8) & 0x01; // Bit 8
+            int account_idx = pkt.data & 0xFF;
+            bool is_ready = (pkt.data >> 8) & 0x01;
             if (core->is_host)
             {
-                // Host processes client info
                 core->p2_account_index = account_idx;
                 g->p2_account_index = account_idx;
                 TraceLog(LOG_INFO, "Client info: account=%d, ready=%d",
                          account_idx, is_ready);
             }
-            // Could also use this for lobby ready-up system
         }
         break;
         case PKT_WIN:
-            // Client receives winner announcement
             if (!core->is_host)
             {
                 g->winner = pkt.data;
@@ -1187,11 +1112,10 @@ void ProcessNetworkPackets(LobbyState *core, GameState *g)
             break;
         }
     }
-} //   CONTINUOUS PACKET PROCESSING ADDED
+}
 void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
 {
     GameState *g = core->game_state;
-    // *** CRITICAL: Process network packets EVERY frame ***
     if (core->net_connected && g->mode == MODE_ONLINE)
     {
         ProcessNetworkPackets(core, g);
@@ -1200,18 +1124,15 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
     {
     case STATE_ROUND_START:
     {
-        // Just deduct host's starting credits and proceed
         if (g->mode == MODE_PVAI)
         {
             core->accounts[core->p1_account_index].credits -= P1_TEMP_CREDITS_START;
         }
-        // No special online handling here - it's all in ProcessNetworkPackets now
         g->state = STATE_SELECT_DISCARD;
         break;
     }
     case STATE_SELECT_DISCARD:
     {
-        // P1 discard selection (Host controls)
         if (!g->p1_discard_ready)
         {
             if (IsPlayerAI(g, 1))
@@ -1219,7 +1140,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 AI_SelectDiscard(g, 1);
                 g->p1_discard_ready = true;
             }
-            // Online: Only host can select for P1
             else if (core->net_role != NET_CLIENT)
             {
                 for (int i = 0; i < g->p1_hand_size; i++)
@@ -1230,7 +1150,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                     {
                         g->p1_discard_idx = i;
                         g->p1_discard_ready = true;
-                        // *** SEND to client ***
                         if (core->net_connected && core->is_host)
                         {
                             SendPacket(core, PKT_P1_DISCARD, i);
@@ -1242,7 +1161,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 }
             }
         }
-        // P2 discard selection (Client controls)
         if (!g->p2_discard_ready)
         {
             if (IsPlayerAI(g, 2))
@@ -1250,7 +1168,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 AI_SelectDiscard(g, 2);
                 g->p2_discard_ready = true;
             }
-            // Online: Only client can select for P2
             else if (core->net_role != NET_HOST)
             {
                 for (int i = 0; i < g->p2_hand_size; i++)
@@ -1261,7 +1178,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                     {
                         g->p2_discard_idx = i;
                         g->p2_discard_ready = true;
-                        // *** SEND to host ***
                         if (core->net_connected && !core->is_host)
                         {
                             SendPacket(core, PKT_P2_DISCARD, i);
@@ -1273,7 +1189,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 }
             }
         }
-        // Both ready? Proceed
         if (g->p1_discard_ready && g->p2_discard_ready)
         {
             g->state = STATE_REVEAL_AND_RESOLVE;
@@ -1286,7 +1201,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
         g->revealed_p2 = g->player2_hand[g->p2_discard_idx];
         g->p1_discard_ready = false;
         g->p2_discard_ready = false;
-        // Remove discarded cards from hands
         for (int i = g->p1_discard_idx; i < g->p1_hand_size - 1; i++)
             g->player1_hand[i] = g->player1_hand[i + 1];
         g->p1_hand_size--;
@@ -1301,12 +1215,10 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
     }
     case STATE_WAIT_FOR_TURN:
     {
-        // AI updates...
         if (IsPlayerAI(g, 1) && !g->p1_done_placing)
             AI_UpdatePlacementPhase(g, 1);
         if (IsPlayerAI(g, 2) && !g->p2_done_placing)
             AI_UpdatePlacementPhase(g, 2);
-        // Check if both done
         if (g->p1_done_placing && g->p2_done_placing)
         {
             g->state = STATE_HAND_RESHUFFLE;
@@ -1317,7 +1229,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
         float mult2 = GetRewardMultiplier(g->p2_completed_ranks);
         float reward1 = REWARD_PLACEMENT * mult1;
         float reward2 = REWARD_PLACEMENT * mult2;
-        // P1 Human Placement (HOST ONLY in online mode)
         if (!IsPlayerAI(g, 1) && !g->p1_done_placing &&
             core->net_role != NET_CLIENT)
         {
@@ -1330,7 +1241,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                     Card c = g->player1_hand[i];
                     if (c.suit != SUIT_HEARTS && c.rank != RANK_JOKER)
                     {
-                        // Find matching keycard
                         for (int k = 0; k < KEYCARDS; k++)
                         {
                             if (c.rank == g->keycards[k].rank)
@@ -1347,18 +1257,15 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                                     {
                                         if (!g->p1_slots[k][s].is_valid)
                                         {
-                                            // Place card
                                             g->p1_slots[k][s] = c;
                                             g->p1_temp_credits += reward1;
                                             CheckRankCompletionBonus(g, 1, k, cards_before);
-                                            // Remove from hand
                                             for (int j = i; j < g->p1_hand_size - 1; j++)
                                             {
                                                 g->player1_hand[j] = g->player1_hand[j + 1];
                                             }
                                             g->p1_hand_size--;
                                             g->player1_hand[g->p1_hand_size++] = DrawFromDeck(g);
-                                            // *** SEND to client ***
                                             if (core->net_connected && core->is_host)
                                             {
                                                 int data = (i * 100) + k;
@@ -1366,7 +1273,7 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                                                 TraceLog(LOG_INFO, "Host sent P1 placement: hand=%d, key=%d", i, k);
                                             }
                                             PlaySound(g_place_sound);
-                                            goto p1_placed; // Exit nested loops
+                                            goto p1_placed;
                                         }
                                     }
                                 }
@@ -1378,7 +1285,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
             }
         p1_placed:;
         }
-        // P2 Human Placement (CLIENT ONLY in online mode)
         if (!IsPlayerAI(g, 2) && !g->p2_done_placing &&
             core->net_role != NET_HOST)
         {
@@ -1416,7 +1322,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                                             }
                                             g->p2_hand_size--;
                                             g->player2_hand[g->p2_hand_size++] = DrawFromDeck(g);
-                                            // *** SEND to host ***
                                             if (core->net_connected && !core->is_host)
                                             {
                                                 int data = (i * 100) + k;
@@ -1436,12 +1341,10 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
             }
         p2_placed:;
         }
-        // PASS BUTTON LOGIC
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
         {
             Rectangle p1_pass = ContinueButtonRect(1);
             Rectangle p2_pass = ContinueButtonRect(2);
-            // P1 Pass (Host controls)
             if (core->net_role != NET_CLIENT &&
                 !IsPlayerAI(g, 1) && !g->p1_done_placing &&
                 CheckCollisionPointRec(mouse, p1_pass))
@@ -1455,7 +1358,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                 }
                 PlaySound(g_coin_sound);
             }
-            // P2 Pass (Client controls)
             if (core->net_role != NET_HOST &&
                 !IsPlayerAI(g, 2) && !g->p2_done_placing &&
                 CheckCollisionPointRec(mouse, p2_pass))
@@ -1504,36 +1406,29 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
     case STATE_CHECK_WIN:
     {
         UpdateWinStats(g);
-        // Check win condition (3 or more completed ranks)
         if (g->p1_completed_ranks >= 3 || g->p2_completed_ranks >= 3)
         {
             g->winner = (g->p1_completed_ranks >= 3) ? 1 : 2;
             g->game_over = true;
             g->win_timer_start = GetTime();
-            // Host announces the winner
             if (core->net_connected && core->is_host)
             {
                 SendPacket(core, PKT_WIN, g->winner);
                 TraceLog(LOG_INFO, "Host sent win packet: P%d wins", g->winner);
             }
-            // Calculate final scores
             float winner_temp = (g->winner == 1) ? g->p1_temp_credits : g->p2_temp_credits;
             float loser_temp = (g->winner == 1) ? g->p2_temp_credits : g->p1_temp_credits;
             float winner_bonus = REWARD_MATCH * (float)g->total_rounds;
             g->final_score_p1 = (g->winner == 1) ? (winner_temp + winner_bonus) : (loser_temp - LOSER_PENALTY);
             g->final_score_p2 = (g->winner == 2) ? (winner_temp + winner_bonus) : (loser_temp - LOSER_PENALTY);
-            // Update account credits based on mode
             if (g->mode == MODE_PVP)
             {
-                // Friendly match, no credit updates, no stats
             }
             else if (g->mode == MODE_AIVAI && !g->accounts->active_bet)
             {
-                // Friendly AI match, no updates
             }
             else if (g->mode == MODE_PVAI)
             {
-                // Update P1 account (human player)
                 if (core->p1_account_index >= 0)
                 {
                     double net_change;
@@ -1555,7 +1450,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                         UpdateGameStats(core, core->p1_account_index, GAME_JOKERS_GAMBIT, net_change);
                     }
                 }
-                // Update AI opponent account (simplified - no stats tracking)
                 if (core->p2_account_index >= 0)
                 {
                     if (g->winner == 2)
@@ -1569,18 +1463,15 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                         core->accounts[core->p2_account_index].losses++;
                     }
                     core->accounts[core->p2_account_index].tokens += 1.0;
-                    // No stats tracking for AI opponents
                 }
             }
             else if (g->mode == MODE_BETTING)
             {
-                // Calculate betting payout (ONLY HERE, not in STATE_GAME_OVER)
                 double payout_odds[][2] = {
-                    {1.43, 3.33},  // FLINT vs THEA (THEA win, FLINT win)
-                    {1.11, 10.00}, // BOB vs FLINT
-                    {1.67, 2.50},  // THEA vs BOB
-                    {5.00, 5.00}   // RANDOM
-                };
+                    {1.43, 3.33},
+                    {1.11, 10.00},
+                    {1.67, 2.50},
+                    {5.00, 5.00}};
                 int matchup = core->betting.selected_matchup;
                 double multiplier = (g->winner == 1) ? payout_odds[matchup][1] : payout_odds[matchup][0];
                 bool player_won = false;
@@ -1605,7 +1496,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
                     core->betting.net_profit = -(core->betting.p1_bet_amount + core->betting.p2_bet_amount);
                     ShowNotification(core, "BET LOST", "Better luck next time!");
                 }
-                // Clear betting flag
                 if (core->betting.original_player >= 0)
                 {
                     core->accounts[core->betting.original_player].active_bet = false;
@@ -1620,7 +1510,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
         }
         else
         {
-            // Continue game
             g->revealed_p1 = BlankCard();
             g->revealed_p2 = BlankCard();
             g->state = STATE_SELECT_DISCARD;
@@ -1628,7 +1517,6 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
         break;
     }
     case STATE_GAME_OVER:
-        // No update logic needed here - handled at top of function
         break;
     default:
         break;
@@ -1636,11 +1524,8 @@ void UpdateJokersGambit(LobbyState *core, Vector2 mouse)
 }
 void StartPVPGame(LobbyState *g)
 {
-    // Set mode
     g->game_state->mode = MODE_PVP;
-    // Initialize game
     InitGame(g);
-    // Start game
     SwitchState(g, STATE_JOKERS_GAMBIT);
 }
 void DrawJokersGambit(const LobbyState *core)
@@ -1648,7 +1533,6 @@ void DrawJokersGambit(const LobbyState *core)
     const GameState *g = core->game_state;
     if (g->game_over)
     {
-        // Game over screen (full screen)
         DrawGameOver((LobbyState *)core, (GameState *)g);
         return;
     }
@@ -1677,7 +1561,6 @@ void UpdateDiscardSelection(GameState *g, Vector2 mouse)
             for (int i = 0; i < g->p1_hand_size; i++)
             {
                 Rectangle btn = ButtonRect(1, i);
-                // Mouse input
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, btn))
                 {
                     g->p1_discard_idx = i;
@@ -1685,7 +1568,6 @@ void UpdateDiscardSelection(GameState *g, Vector2 mouse)
                     g->p1_selected = true;
                     PlaySound(g_discard_sound);
                 }
-                // Keyboard input (1-5 keys)
                 if (IsKeyPressed(KEY_ONE + i))
                 {
                     g->p1_discard_idx = i;
@@ -1695,7 +1577,6 @@ void UpdateDiscardSelection(GameState *g, Vector2 mouse)
                 }
             }
         }
-        // Handle human P2 input PVP
         if (!IsPlayerAI(g, 2) && !g->p2_discard_ready)
         {
             for (int i = 0; i < g->p2_hand_size; i++)
@@ -1718,7 +1599,6 @@ void UpdateDiscardSelection(GameState *g, Vector2 mouse)
             for (int i = 0; i < g->p1_hand_size; i++)
             {
                 Rectangle btn = ButtonRect(1, i);
-                // Mouse input
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, btn))
                 {
                     g->p1_discard_idx = i;
@@ -1726,7 +1606,6 @@ void UpdateDiscardSelection(GameState *g, Vector2 mouse)
                     g->p1_selected = true;
                     PlaySound(g_discard_sound);
                 }
-                // Keyboard input (1-5 keys)
                 if (IsKeyPressed(KEY_ONE + i))
                 {
                     g->p1_discard_idx = i;
@@ -1751,10 +1630,8 @@ void UpdateDiscardSelection(GameState *g, Vector2 mouse)
         }
         if (g->p1_selected && g->p2_selected)
         {
-            // Reveal cards
             g->revealed_p1 = g->player1_hand[g->p1_discard_idx];
             g->revealed_p2 = g->player2_hand[g->p2_discard_idx];
-            // Remove from hands
             for (int j = g->p1_discard_idx; j < g->p1_hand_size - 1; j++)
                 g->player1_hand[j] = g->player1_hand[j + 1];
             g->p1_hand_size--;
@@ -1762,7 +1639,6 @@ void UpdateDiscardSelection(GameState *g, Vector2 mouse)
                 g->player2_hand[j] = g->player2_hand[j + 1];
             g->p2_hand_size--;
             PlaySound(g_reveal_sound);
-            // Process discards and move to placement phase
             ResolveDiscards(g);
             g->state = STATE_WAIT_FOR_TURN;
             g->p1_selected = false;
@@ -1774,7 +1650,6 @@ void UpdateDiscardSelection(GameState *g, Vector2 mouse)
 }
 void UpdatePlacementPhase(GameState *g, Vector2 mouse)
 {
-    // Update AI players
     if (!g->p1_done_placing && IsPlayerAI(g, 1))
     {
         AI_UpdatePlacementPhase(g, 1);
@@ -1783,10 +1658,8 @@ void UpdatePlacementPhase(GameState *g, Vector2 mouse)
     {
         AI_UpdatePlacementPhase(g, 2);
     }
-    // Handle human P1 placement
     if (!g->p1_done_placing && !IsPlayerAI(g, 1))
     {
-        // Check for PASS button click
         Rectangle continue_btn = ContinueButtonRect(1);
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, continue_btn))
         {
@@ -1795,7 +1668,6 @@ void UpdatePlacementPhase(GameState *g, Vector2 mouse)
             PlaySound(g_continue_sound);
         }
     }
-    // Handle human P2 placement (if not AI)
     if (!g->p2_done_placing && !IsPlayerAI(g, 2))
     {
         Rectangle continue_btn = ContinueButtonRect(2);
@@ -1806,7 +1678,6 @@ void UpdatePlacementPhase(GameState *g, Vector2 mouse)
             PlaySound(g_continue_sound);
         }
     }
-    // Check if both players are done placing
     if (g->p1_done_placing && g->p2_done_placing)
     {
         g->placement_phases_count++;
@@ -1816,31 +1687,23 @@ void UpdatePlacementPhase(GameState *g, Vector2 mouse)
 void CheckWinCondition(GameState *g, LobbyState *core)
 {
     UpdateWinStats(g);
-    // Check for winner
     if (g->p1_completed_ranks >= KEYCARDS || g->p2_completed_ranks >= KEYCARDS)
     {
         g->winner = (g->p1_completed_ranks >= KEYCARDS) ? 1 : 2;
-        // Calculate final scores using TEMP credits
         g->final_score_p1 = g->p1_temp_credits;
         g->final_score_p2 = g->p2_temp_credits;
-        // Only update account credits/stats in PvAI mode
         if (g->mode == MODE_PVAI)
         {
-            // Sync game state accounts back to lobby state
             memcpy(core->accounts, g->accounts, sizeof(core->accounts));
             core->account_count = g->account_count;
-            // Update P1 account
             if (core->p1_account_index >= 0)
             {
                 Account *p1_acc = &core->accounts[core->p1_account_index];
                 float net_change = g->p1_temp_credits - P1_TEMP_CREDITS_START;
                 p1_acc->credits += (double)net_change;
-                // Update stats
                 UpdateGameStats(core, core->p1_account_index, GAME_JOKERS_GAMBIT, (double)net_change);
-                // Check for achievements
                 CheckAchievements(p1_acc, core);
             }
-            // Update AI opponent account
             if (core->p2_account_index >= 0 && core->accounts[core->p2_account_index].is_ai)
             {
                 float net_change = g->p2_temp_credits - P2_TEMP_CREDITS_START;
@@ -1859,7 +1722,6 @@ void CheckWinCondition(GameState *g, LobbyState *core)
                 double bet_amount = (core->betting.bet_on_player == 1 ? core->betting.p1_bet_amount : core->betting.p2_bet_amount);
                 if (won)
                 {
-                    // Assuming 2x payout for simplicity; adjust as needed
                     double multiplier = 2.0;
                     double payout = bet_amount * multiplier;
                     core->accounts[original_idx].tokens += payout;
@@ -1874,16 +1736,13 @@ void CheckWinCondition(GameState *g, LobbyState *core)
                     core->betting.player_won_bet = false;
                     core->betting.net_profit = -bet_amount;
                 }
-                // Update stats if desired
                 SaveAllAccounts(core);
             }
-            // Logout AIs and restore original player
             LogoutAccount(core, 1);
             LogoutAccount(core, 2);
             LoginAccount(core, original_idx, 1);
-            core->accounts[original_idx].active_bet = false; // Clear flag
+            core->accounts[original_idx].active_bet = false;
         }
-        // Auto-logout P2 after game ends (PVP or AI modes)
         if (g->mode == MODE_PVP || g->mode == MODE_AIVAI)
         {
             AutoLogout(core);
@@ -1893,7 +1752,6 @@ void CheckWinCondition(GameState *g, LobbyState *core)
     }
     else
     {
-        // Continue to next round
         g->state = STATE_SELECT_DISCARD;
         g->p1_done_placing = false;
         g->p2_done_placing = false;

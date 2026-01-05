@@ -5,54 +5,45 @@
 #include <stdlib.h>
 #include "main.h"
 #include "multiplayer.h"
-
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
-
 void ShowNotification(LobbyState *g, const char *title, const char *subtitle)
 {
     strncpy(g->notification_text, title, 63);
     strncpy(g->notification_subtext, subtitle, 63);
-    g->notification_timer = GetTime() + 4.0; // Show for 4 seconds
-    g->notification_y_offset = -100.0f;      // Start off-screen (top)
+    g->notification_timer = GetTime() + 4.0;
+    g->notification_y_offset = -100.0f;
 }
 void DrawNotification(LobbyState *g)
 {
     if (GetTime() > g->notification_timer)
         return;
-    // Animation: Slide in and out
     float time_left = (float)(g->notification_timer - GetTime());
-    float target_y = 20.0f; // Target position at top of screen
-    // Slide In
+    float target_y = 20.0f;
     if (time_left > 3.5f)
     {
         g->notification_y_offset += (target_y - g->notification_y_offset) * 0.1f;
     }
-    // Slide Out
     else if (time_left < 0.5f)
     {
         g->notification_y_offset -= 5.0f;
     }
-    // Stay
     else
     {
         g->notification_y_offset = target_y;
     }
-    // Draw the Toast Box
     float w = 400;
     float h = 80;
     float x = CENTER_X - (w / 2.0f);
     float y = g->notification_y_offset;
     DrawRectangle((int)x, (int)y, (int)w, (int)h, DARKBLUE);
     DrawRectangleLines((int)x, (int)y, (int)w, (int)h, GOLD);
-    // Icon (Placeholder or use Atlas)
     DrawRectangle((int)x + 10, (int)y + 10, 60, 60, GOLD);
     DrawText("!", (int)x + 30, (int)y + 20, 40, DARKBLUE);
-    // Text
     DrawText(g->notification_text, (int)x + 80, (int)y + 15, 20, GOLD);
     DrawText(g->notification_subtext, (int)x + 80, (int)y + 40, 20, WHITE);
 }
@@ -61,7 +52,6 @@ void ShowAccountStatus(LobbyState *g, const char *msg)
     strncpy(g->account_status_message, msg, sizeof(g->account_status_message) - 1);
     g->account_status_timer = GetTime();
 }
-// Helper to switch states and reset selection
 void SwitchState(LobbyState *g, UIState newState)
 {
     g->state = newState;
@@ -71,12 +61,9 @@ void SwitchState(LobbyState *g, UIState newState)
         g->achievement_cursor_col = 0;
         g->achievement_cursor_row = 0;
         g->achievement_scroll_row = 0;
-        g->achievement_view_mode = 0; // Default P1
+        g->achievement_view_mode = 0;
     }
 }
-// ============================================================================
-// MAIN MENU
-// ============================================================================
 void DrawMainMenu(const LobbyState *g)
 {
     DrawText("MICHAEL'S CASINO", (int)(CENTER_X - 380.0f), 100, 90, GOLD);
@@ -112,17 +99,16 @@ void UpdateMainMenu(LobbyState *g, Vector2 mouse)
         rects[i] = (Rectangle){CENTER_X - 150, start_y + ((float)i * gap), 300, 70};
     }
     int gamepad = GetActiveGamepad();
-    // === KEYBOARD & CONTROLLER INPUT ===
     if (IsKeyPressed(KEY_UP) || XboxBtnPressed(gamepad, 11))
     {
         g->menu_selection--;
         if (g->menu_selection < 0)
-            g->menu_selection = 5; // MENU: 6 MENU OPTIONS
+            g->menu_selection = 5;
     }
     if (IsKeyPressed(KEY_DOWN) || XboxBtnPressed(gamepad, 12))
     {
         g->menu_selection++;
-        if (g->menu_selection > 5) //
+        if (g->menu_selection > 5)
             g->menu_selection = 0;
     }
     if (IsKeyPressed(KEY_ENTER) || XboxBtnPressed(gamepad, 0))
@@ -151,7 +137,6 @@ void UpdateMainMenu(LobbyState *g, Vector2 mouse)
             break;
         }
     }
-    // === MOUSE INPUT ===
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
         if (CheckCollisionPointRec(mouse, rects[0]))
@@ -168,9 +153,6 @@ void UpdateMainMenu(LobbyState *g, Vector2 mouse)
             SwitchState(g, STATE_ACHIEVEMENTS);
     }
 }
-// ============================================================================
-// LOBBY
-// ============================================================================
 void DrawLobby(const LobbyState *g)
 {
     DrawText("SELECT YOUR GAME", (int)(CENTER_X - 300.0f), 100, 70, GOLD);
@@ -189,11 +171,9 @@ void DrawLobby(const LobbyState *g)
     DrawText("(Press 'A' to Select - Coming Soon)", (int)(CENTER_X - 220), 600, 30, GRAY);
     DrawText("BACK (B)", (int)(CENTER_X - 70), (int)SCREEN_H - 150, 35, WHITE);
 }
-
 void UpdateLobby(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
-    // === KEYBOARD INPUT ===
     if (IsKeyPressed(KEY_LEFT) || XboxBtnPressed(gamepad, 13))
     {
         g->menu_selection--;
@@ -211,10 +191,7 @@ void UpdateLobby(LobbyState *g, Vector2 mouse)
         SwitchState(g, STATE_MAIN_MENU);
         return;
     }
-
-    // === SELECTION ===
     bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0));
-    // === MOUSE INPUT ===
     Rectangle game_rects[3];
     game_rects[0] = (Rectangle){CENTER_X - 450, 300, 300, 120};
     game_rects[1] = (Rectangle){CENTER_X - 150, 300, 300, 120};
@@ -233,18 +210,17 @@ void UpdateLobby(LobbyState *g, Vector2 mouse)
         SwitchState(g, STATE_MAIN_MENU);
         return;
     }
-    // Handle selection
     if (trigger)
     {
         switch (g->menu_selection)
         {
-        case 0: // Joker's Gambit
+        case 0:
             SwitchState(g, STATE_MODE_SELECTION);
             break;
-        case 1: // Blackjack
+        case 1:
             ShowNotification(g, "COMING SOON", "Blackjack is under development!");
             break;
-        case 2: // Slot Reels
+        case 2:
             SwitchState(g, STATE_SLOT_REELS);
             break;
         default:
@@ -252,26 +228,20 @@ void UpdateLobby(LobbyState *g, Vector2 mouse)
         }
     }
 }
-// ============================================================================
-// SETTINGS
-// ============================================================================
 void DrawSettings(const LobbyState *g)
 {
     Vector2 mouse = GetMousePosition();
     DrawText("SETTINGS", (int)(CENTER_X - 200.0f), 100, 60, PURPLE);
-    // Music toggle
     Rectangle music_rect = {CENTER_X - 150.0f, 200.0f, 300.0f, 60.0f};
     bool music_hovered = CheckCollisionPointRec(mouse, music_rect);
     bool music_selected = (g->menu_selection == 0);
     DrawRectangleRec(music_rect, music_selected || music_hovered ? LIME : GREEN);
     DrawText(g->music_enabled ? "Music: ON" : "Music: OFF", (int)music_rect.x + 20, (int)music_rect.y + 15, 30, BLACK);
-    // Cover P2 cards
     Rectangle cover_rect = {CENTER_X - 150.0f, 280.0f, 300.0f, 60.0f};
     bool cover_hovered = CheckCollisionPointRec(mouse, cover_rect);
     bool cover_selected = (g->menu_selection == 1);
     DrawRectangleRec(cover_rect, cover_selected || cover_hovered ? LIME : GREEN);
     DrawText(g->cover_p2_cards ? "Cover P2 Cards: ON" : "Cover P2 Cards: OFF", (int)cover_rect.x + 20, (int)cover_rect.y + 15, 30, BLACK);
-    // AI Delay (example slider)
     Rectangle delay_rect = {CENTER_X - 150.0f, 360.0f, 300.0f, 60.0f};
     bool delay_hovered = CheckCollisionPointRec(mouse, delay_rect);
     bool delay_selected = (g->menu_selection == 2);
@@ -279,26 +249,22 @@ void DrawSettings(const LobbyState *g)
     const char *delay_names[] = {"Fast (0.5s)", "Normal (1.0s)", "Slow (2.0s)"};
     DrawText(TextFormat("AI Think Delay: %s", delay_names[g->ai_delay_mode]),
              (int)delay_rect.x + 20, (int)delay_rect.y + 15, 30, BLACK);
-    // Window Scale
     Rectangle scale_rect = {CENTER_X - 150.0f, 440.0f, 300.0f, 60.0f};
     bool scale_hovered = CheckCollisionPointRec(mouse, scale_rect);
     bool scale_selected = (g->menu_selection == 3);
     DrawRectangleRec(scale_rect, scale_selected || scale_hovered ? LIME : GREEN);
     const char *scales[] = {"100%", "125%", "150%", "75%"};
     DrawText(TextFormat("Window Scale: %s", scales[g->window_scale]), (int)scale_rect.x + 20, (int)scale_rect.y + 15, 30, BLACK);
-    // Fullscreen toggle
     Rectangle fs_rect = {CENTER_X - 150.0f, 520.0f, 300.0f, 60.0f};
     bool fs_hovered = CheckCollisionPointRec(mouse, fs_rect);
     bool fs_selected = (g->menu_selection == 4);
     DrawRectangleRec(fs_rect, fs_selected || fs_hovered ? LIME : GREEN);
     DrawText(g->is_fullscreen ? "Fullscreen: ON" : "Fullscreen: OFF", (int)fs_rect.x + 20, (int)fs_rect.y + 15, 30, BLACK);
-    // Debug button
     Rectangle debug_rect = {CENTER_X - 150.0f, 600.0f, 300.0f, 60.0f};
     bool debug_hovered = CheckCollisionPointRec(mouse, debug_rect);
     bool debug_selected = (g->menu_selection == 5);
     DrawRectangleRec(debug_rect, debug_selected || debug_hovered ? RED : MAROON);
     DrawText("DEBUG: Check Achievements", (int)debug_rect.x + 20, (int)debug_rect.y + 15, 30, WHITE);
-    // Back button
     Rectangle back_rect = {CENTER_X - 150.0f, SCREEN_H - 120.0f, 300.0f, 60.0f};
     bool back_hovered = CheckCollisionPointRec(mouse, back_rect);
     bool back_selected = (g->menu_selection == 6);
@@ -308,7 +274,6 @@ void DrawSettings(const LobbyState *g)
 void UpdateSettings(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
-    // Navigation (7 items: 0-5 settings + debug, 6 back)
     if (IsKeyPressed(KEY_UP) || (gamepad >= 0 && XboxBtnPressed(gamepad, 11)))
     {
         g->menu_selection = (g->menu_selection - 1 + 7) % 7;
@@ -322,12 +287,11 @@ void UpdateSettings(LobbyState *g, Vector2 mouse)
     {
         trigger = true;
     }
-    // Handle selections
     if (trigger)
     {
         switch (g->menu_selection)
         {
-        case 0: // Music
+        case 0:
             g->music_enabled = !g->music_enabled;
             if (g->music_enabled)
                 PlayMusicStream(g_background_music);
@@ -335,24 +299,24 @@ void UpdateSettings(LobbyState *g, Vector2 mouse)
                 StopMusicStream(g_background_music);
             SaveSettings(g);
             break;
-        case 1: // Cover P2
+        case 1:
             g->cover_p2_cards = !g->cover_p2_cards;
             SaveSettings(g);
             break;
-        case 2:                                                           // AI Delay
-            g->ai_delay_mode = (AIDelayMode)((g->ai_delay_mode + 1) % 3); // Cycle through 0-2
+        case 2:
+            g->ai_delay_mode = (AIDelayMode)((g->ai_delay_mode + 1) % 3);
             SaveSettings(g);
             break;
-        case 3: // Window Scale (cycle enums)
+        case 3:
             g->window_scale = (WindowScale)((g->window_scale + 1) % 4);
             ApplyWindowScale(g);
             SaveSettings(g);
             break;
-        case 4: // Fullscreen
+        case 4:
             ToggleAppFullscreen(g);
             SaveSettings(g);
             break;
-        case 5: // Debug Check Achievements
+        case 5:
         {
             int human_count = 0;
             for (int i = 0; i < g->account_count && human_count < 2; i++)
@@ -370,35 +334,29 @@ void UpdateSettings(LobbyState *g, Vector2 mouse)
             SaveAchievements(g);
             ShowAccountStatus(g, "Achievements Checked!");
             break;
-        case 6: // Back
+        case 6:
             SwitchState(g, STATE_MAIN_MENU);
             break;
         default:
             break;
         }
     }
-    // Mouse clicks (for each rect, similar to selection)
     Rectangle music_rect = {CENTER_X - 150.0f, 200.0f, 300.0f, 60.0f};
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(mouse, music_rect))
     {
         g->music_enabled = !g->music_enabled;
-        // ... same as case 0
     }
-    //  B for back
     if (IsKeyPressed(KEY_B) || (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
         SwitchState(g, STATE_MAIN_MENU);
     }
 }
-// ============================================================================
-// ACCOUNTS MANAGER
-// ============================================================================
 void DrawAccountsManager(const LobbyState *g)
 {
     ClearBackground(BLACK);
     DrawText("ACCOUNT MANAGER", (int)(CENTER_X - 300.0f), 50, 60, GOLD);
     float start_y = 150.0f;
-    float card_h = 120.0f; // Increased height for insurance button
+    float card_h = 120.0f;
     float spacing = 10.0f;
     for (int i = 0; i < g->account_count; i++)
     {
@@ -409,12 +367,10 @@ void DrawAccountsManager(const LobbyState *g)
             base_color = MAROON;
         DrawRectangleRec(card, base_color);
         DrawRectangleLinesEx(card, selected ? 4.0f : 2.0f, (selected || g->accounts[i].is_logged_in) ? LIME : GRAY);
-        // Name and status
         DrawText(TextFormat("%s %s", g->accounts[i].first_name, g->accounts[i].last_name),
                  (int)card.x + 20, (int)card.y + 20, 30, WHITE);
         if (g->p1_account_index == i)
             DrawText("P1 ACTIVE", (int)card.x + 700, (int)card.y + 25, 25, LIME);
-        // Credits and tokens
         Color credit_color = g->accounts[i].credits < 0 ? RED : LIGHTGRAY;
         DrawText(TextFormat("Credits: $%.2f", g->accounts[i].credits),
                  (int)card.x + 20, (int)card.y + 60, 20, credit_color);
@@ -422,12 +378,10 @@ void DrawAccountsManager(const LobbyState *g)
                             g->accounts[i].tokens,
                             GetMemberStatusString(g->accounts[i].member_status)),
                  (int)card.x + 20, (int)card.y + 85, 20, LIGHTGRAY);
-        // Insurance indicator or button
         if (!g->accounts[i].is_ai)
         {
             if (g->accounts[i].has_insurance)
             {
-                // Show insurance status and button if in trouble
                 if (g->accounts[i].credits <= 0)
                 {
                     Rectangle ins_btn = {card.x + 650, card.y + 55, 220, 50};
@@ -445,7 +399,6 @@ void DrawAccountsManager(const LobbyState *g)
         if (g->accounts[i].is_ai)
             DrawText("AI BOT", (int)card.x + 720, (int)card.y + 25, 20, GOLD);
     }
-    // Status message
     if (GetTime() < g->account_status_timer + 3.0)
     {
         int text_w = MeasureText(g->account_status_message, 25);
@@ -460,7 +413,6 @@ void UpdateAccountsManager(LobbyState *g, Vector2 mouse)
     float spacing = 10.0f;
     int gamepad = GetActiveGamepad();
     bool trigger_action = false;
-    // Navigation
     if (IsKeyPressed(KEY_UP) || (gamepad >= 0 && XboxBtnPressed(gamepad, 11)))
     {
         g->menu_selection--;
@@ -473,31 +425,26 @@ void UpdateAccountsManager(LobbyState *g, Vector2 mouse)
         if (g->menu_selection >= g->account_count)
             g->menu_selection = 0;
     }
-    // Select action
     if (IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0)))
     {
         trigger_action = true;
     }
-    // Back
     if (IsKeyPressed(KEY_B) ||
         (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
         SwitchState(g, STATE_MAIN_MENU);
         return;
     }
-    // Mouse input
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
         for (int i = 0; i < g->account_count; i++)
         {
             Rectangle card = {CENTER_X - 450.0f, start_y + (float)i * (card_h + spacing), 900.0f, card_h};
-            // Check insurance button
             if (!g->accounts[i].is_ai && g->accounts[i].has_insurance && g->accounts[i].credits <= 0)
             {
                 Rectangle ins_btn = {card.x + 650, card.y + 55, 220, 50};
                 if (CheckCollisionPointRec(mouse, ins_btn))
                 {
-                    // Apply insurance immediately
                     g->accounts[i].credits = 10000.0;
                     g->accounts[i].tokens = 10.0;
                     g->accounts[i].has_insurance = false;
@@ -507,7 +454,6 @@ void UpdateAccountsManager(LobbyState *g, Vector2 mouse)
                     return;
                 }
             }
-            // Check card click
             if (CheckCollisionPointRec(mouse, card))
             {
                 g->menu_selection = i;
@@ -521,7 +467,6 @@ void UpdateAccountsManager(LobbyState *g, Vector2 mouse)
             return;
         }
     }
-    // Login/logout logic
     if (trigger_action)
     {
         int i = g->menu_selection;
@@ -548,15 +493,10 @@ void UpdateAccountsManager(LobbyState *g, Vector2 mouse)
         SaveAllAccounts(g);
     }
 }
-// ============================================================================
-// SHOP -
-// ============================================================================
 void DrawShop(const LobbyState *g)
 {
-
     ClearBackground(BLACK);
     DrawText("TOKEN SHOP", (int)(CENTER_X - 250.0f), 60, 80, GOLD);
-    // Player info at top
     const char *p1 = (g->p1_account_index == -1) ? "Not Logged In" : GetPlayerName(g, 1);
     DrawText("Active Account:", 150, 160, 30, LIME);
     DrawText(p1, 420, 160, 30, WHITE);
@@ -566,15 +506,12 @@ void DrawShop(const LobbyState *g)
                  150, 200, 28, LIME);
         DrawText(TextFormat("Tokens: %.0f", g->accounts[g->p1_account_index].tokens),
                  550, 200, 28, GOLD);
-        // Insurance status
         if (g->accounts[g->p1_account_index].has_insurance)
         {
             DrawText("[INSURED]", 850, 200, 28, GREEN);
         }
     }
-    // Section divider
     DrawRectangle(100, 250, (int)SCREEN_W - 200, 3, GOLD);
-    // Token Packages
     DrawText("TOKEN PACKAGES", (int)(CENTER_X - 200), 280, 40, SKYBLUE);
     Rectangle token_rects[3];
     float start_x = CENTER_X - 550;
@@ -619,7 +556,6 @@ void DrawShop(const LobbyState *g)
                      22, YELLOW);
         }
     }
-    // Insurance section
     DrawText("PROTECTION", (int)(CENTER_X - 140), 580, 40, ORANGE);
     Rectangle insurance_rect = {CENTER_X - 400, 650, 800, 180};
     bool ins_selected = (g->menu_selection == 3);
@@ -640,19 +576,16 @@ void DrawShop(const LobbyState *g)
     {
         DrawText("Protects from total reset at -$25,000", (int)(insurance_rect.x + 180), (int)(insurance_rect.y + 120), 22, LIGHTGRAY);
     }
-    // Status message
     if (GetTime() < g->account_status_timer + 3.0)
     {
         int text_w = MeasureText(g->account_status_message, 28);
         DrawText(g->account_status_message, (int)(CENTER_X - (float)text_w / 2.0f), (int)(SCREEN_H - 120), 28, YELLOW);
     }
-    // Controls
     DrawText("A/Enter = Purchase | B/Esc = Back", (int)(CENTER_X - 250), (int)SCREEN_H - 60, 24, GRAY);
 }
 void UpdateShop(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
-    // Navigation (4 items: 3 token packages + 1 insurance)
     if (IsKeyPressed(KEY_LEFT) || (gamepad >= 0 && XboxBtnPressed(gamepad, 13)))
     {
         g->menu_selection = (g->menu_selection - 1 + 4) % 4;
@@ -669,16 +602,13 @@ void UpdateShop(LobbyState *g, Vector2 mouse)
     {
         g->menu_selection = (g->menu_selection == 3) ? 0 : 3;
     }
-    // Back
     if (IsKeyPressed(KEY_B) ||
         (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
         SwitchState(g, STATE_MAIN_MENU);
         return;
     }
-    // Purchase trigger
     bool trigger = IsKeyPressed(KEY_ENTER) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0));
-    // Mouse selection
     Rectangle token_rects[3];
     float start_x = CENTER_X - 550;
     float card_width = 340;
@@ -704,7 +634,6 @@ void UpdateShop(LobbyState *g, Vector2 mouse)
         SwitchState(g, STATE_MAIN_MENU);
         return;
     }
-    // Handle purchases
     if (trigger)
     {
         if (g->p1_account_index < 0)
@@ -716,7 +645,7 @@ void UpdateShop(LobbyState *g, Vector2 mouse)
         Account *acc = &g->accounts[g->p1_account_index];
         switch (g->menu_selection)
         {
-        case 0: // 1 token
+        case 0:
             if (acc->credits >= 1000.0)
             {
                 acc->credits -= 1000.0;
@@ -731,7 +660,7 @@ void UpdateShop(LobbyState *g, Vector2 mouse)
                 PlaySound(g_place_sound);
             }
             break;
-        case 1: // 5 tokens
+        case 1:
             if (acc->credits >= 4000.0)
             {
                 acc->credits -= 4000.0;
@@ -746,7 +675,7 @@ void UpdateShop(LobbyState *g, Vector2 mouse)
                 PlaySound(g_place_sound);
             }
             break;
-        case 2: // 10 tokens
+        case 2:
             if (acc->credits >= 7000.0)
             {
                 acc->credits -= 7000.0;
@@ -761,7 +690,7 @@ void UpdateShop(LobbyState *g, Vector2 mouse)
                 PlaySound(g_place_sound);
             }
             break;
-        case 3: // Insurance
+        case 3:
             if (acc->has_insurance)
             {
                 ShowAccountStatus(g, "You already have insurance!");
@@ -787,9 +716,6 @@ void UpdateShop(LobbyState *g, Vector2 mouse)
         UpdateAccountCredits(g);
     }
 }
-// ============================================================================
-// LEADERBOARD
-// ============================================================================
 static int CompareCash(const void *a, const void *b)
 {
     const LeaderboardEntry *entryA = (const LeaderboardEntry *)a;
@@ -841,7 +767,6 @@ void DrawLeaderboard(const LobbyState *g)
 {
     ClearBackground(BLACK);
     DrawText("LEADERBOARD", (int)(CENTER_X - 250), 50, 60, GOLD);
-    // Filter buttons
     Rectangle rects[4];
     rects[0] = (Rectangle){CENTER_X - 600, 130, 250, 50};
     rects[1] = (Rectangle){CENTER_X - 320, 130, 200, 50};
@@ -869,14 +794,12 @@ void DrawLeaderboard(const LobbyState *g)
     if (sel3)
         DrawRectangleLinesEx(rects[3], 3, WHITE);
     DrawText(TextFormat("Date%s", (g->leaderboard_sort_mode == 2 ? dir : "")), (int)rects[3].x + 40, (int)rects[3].y + 15, 20, BLACK);
-    // Header
     int y = 210;
     DrawText("RANK", (int)CENTER_X - 650, y, 25, YELLOW);
     DrawText("PLAYER", (int)CENTER_X - 550, y, 25, YELLOW);
     DrawText("WINNINGS", (int)CENTER_X - 50, y, 25, YELLOW);
     DrawText("ROUNDS", (int)CENTER_X + 300, y, 25, YELLOW);
     DrawText("Date/Time", (int)CENTER_X + 450, y, 25, YELLOW);
-    // Entries
     y = 250;
     int displayed = 0;
     int rank = 1;
@@ -889,7 +812,7 @@ void DrawLeaderboard(const LobbyState *g)
         DrawText(e->winner_name, (int)CENTER_X - 550, y, 22, WHITE);
         DrawText(TextFormat("$%.2f", e->total_winnings), (int)CENTER_X - 50, y, 22, LIME);
         DrawText(TextFormat("%d", e->total_rounds), (int)CENTER_X + 170, y, 22, SKYBLUE);
-        DrawText(e->timestamp, 1400, y, 20, LIGHTGRAY); // Right-aligned timestamp
+        DrawText(e->timestamp, 1400, y, 20, LIGHTGRAY);
         y += 40;
         displayed++;
         rank++;
@@ -909,7 +832,6 @@ void UpdateLeaderboard(LobbyState *g, Vector2 mouse)
     rects[3] = (Rectangle){CENTER_X + 120, 130, 200, 50};
     int gamepad = GetActiveGamepad();
     bool trigger = false;
-    // === KEYBOARD & CONTROLLER KEYBINDS ===
     if (IsKeyPressed(KEY_LEFT) || XboxBtnPressed(gamepad, 13))
     {
         g->menu_selection--;
@@ -930,8 +852,6 @@ void UpdateLeaderboard(LobbyState *g, Vector2 mouse)
     {
         SwitchState(g, STATE_MAIN_MENU);
     }
-
-    // === MOUSE INPUT ===
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
         for (int i = 0; i < 4; i++)
@@ -946,7 +866,6 @@ void UpdateLeaderboard(LobbyState *g, Vector2 mouse)
         if (mouse.y > SCREEN_H - 100)
             SwitchState(g, STATE_MAIN_MENU);
     }
-    // === FILTER/SORT LOGIC ===
     if (trigger)
     {
         if (g->menu_selection == 0)
@@ -969,21 +888,15 @@ void UpdateLeaderboard(LobbyState *g, Vector2 mouse)
         SortLeaderboard(g);
     }
 }
-// ============================================================================
-// Achievements
-// ============================================================================
 void DrawAchievements(const LobbyState *g)
 {
-    // BACK BUTTON (Top Left)
     Rectangle back_btn = {20, 20, 120, 50};
     Vector2 mouse = GetMousePosition();
     bool back_hover = CheckCollisionPointRec(mouse, back_btn);
     DrawRectangleRec(back_btn, back_hover ? RED : MAROON);
     DrawRectangleLinesEx(back_btn, 2, WHITE);
     DrawText("BACK", (int)back_btn.x + 25, (int)back_btn.y + 15, 20, WHITE);
-    // 2. ADJUST HEADER POSITIONS (Fix Overlap)
-    DrawText("ACHIEVEMENTS", (int)(CENTER_X - 240.0f), 50, 60, ORANGE); // Moved up slightly
-    // Find human account indices logic...
+    DrawText("ACHIEVEMENTS", (int)(CENTER_X - 240.0f), 50, 60, ORANGE);
     int human_indices[2] = {-1, -1};
     int human_count = 0;
     for (int i = 0; i < g->account_count && human_count < 2; i++)
@@ -1007,15 +920,12 @@ void DrawAchievements(const LobbyState *g)
     DrawRectangleRec(p2_rect, p2_valid ? (p2_hovered ? SKYBLUE : LIGHTGRAY) : GRAY);
     DrawText("P1", (int)p1_rect.x + 35, (int)p1_rect.y + 12, 20, BLACK);
     DrawText("P2", (int)p2_rect.x + 35, (int)p2_rect.y + 12, 20, BLACK);
-    // Draw Name centered
     const char *player_name = GetPlayerNameByIndex(g, idx);
     int name_width = MeasureText(player_name, 30);
     DrawText(TextFormat("Viewing: %s", player_name), (int)(CENTER_X - (float)name_width / 2.0f), 200, 30, WHITE);
-    // Draw Status below name
     const char *status_str = TextFormat("(%s)", GetMemberStatusString(acc->member_status));
     int status_width = MeasureText(status_str, 24);
     DrawText(status_str, (int)(CENTER_X - (float)status_width / 2.0f), 240, 24, LIGHTGRAY);
-    // Progress Bar (Adjusted Y position)
     int unlocked_count = 0;
     for (int i = 0; i < MAX_ACHIEVEMENTS; i++)
     {
@@ -1031,7 +941,6 @@ void DrawAchievements(const LobbyState *g)
     const char *prog_text = TextFormat("%d / %d (%d%%)", unlocked_count, MAX_ACHIEVEMENTS, (int)(progress * 100));
     int text_w = MeasureText(prog_text, 20);
     DrawText(prog_text, (int)(CENTER_X - (float)text_w / 2.0f), 282, 20, BLACK);
-    // Grid setup
     int icon_size = 130;
     int col_spacing = 25;
     int row_height = 165;
@@ -1072,12 +981,10 @@ void DrawAchievements(const LobbyState *g)
             }
         }
     }
-    // Indicators
     if (scroll_row > 0)
         DrawText("↑", (int)(CENTER_X + 350.0f), (int)start_y - 30, 40, WHITE);
     if (scroll_row + visible_rows < grid_rows)
         DrawText("↓", (int)(CENTER_X + 350.0f), (int)(start_y + (float)visible_rows * (float)row_height + 20.0f), 40, WHITE);
-    // Info rect
     int selected_ach_id = g->achievement_cursor_row * grid_cols + g->achievement_cursor_col;
     if (selected_ach_id < MAX_ACHIEVEMENTS)
     {
@@ -1096,7 +1003,6 @@ void DrawAchievements(const LobbyState *g)
 void UpdateAchievements(LobbyState *g, Vector2 mouse)
 {
     int gamepad = GetActiveGamepad();
-    // Compute human count
     int human_count = 0;
     for (int i = 0; i < g->account_count; i++)
     {
@@ -1107,9 +1013,7 @@ void UpdateAchievements(LobbyState *g, Vector2 mouse)
     bool p2_valid = (human_count >= 2);
     int view_mode = g->achievement_view_mode;
     view_mode = CLAMP(view_mode, 0, human_count - 1);
-    // Back button
     Rectangle back_btn = {20, 20, 120, 50};
-    // Player switch buttons
     Rectangle p1_rect = {CENTER_X - 250.0f, 130.0f, 100.0f, 45.0f};
     Rectangle p2_rect = {CENTER_X + 150.0f, 130.0f, 100.0f, 45.0f};
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
@@ -1141,13 +1045,11 @@ void UpdateAchievements(LobbyState *g, Vector2 mouse)
     {
         g->achievement_view_mode = 1;
     }
-
     if (IsKeyPressed(KEY_B) || XboxBtnPressed(gamepad, 1))
     {
         SwitchState(g, STATE_MAIN_MENU);
         return;
     }
-    // Grid navigation setup
     int grid_cols = 5;
     int grid_rows = 10;
     int icon_size = 130;
@@ -1180,11 +1082,9 @@ void UpdateAchievements(LobbyState *g, Vector2 mouse)
     if (moved)
     {
     }
-    // Auto-scroll to keep cursor visible (center-ish)
     int target_scroll = g->achievement_cursor_row - visible_rows / 2;
     target_scroll = CLAMP(target_scroll, 0, grid_rows - visible_rows);
     g->achievement_scroll_row = target_scroll;
-    // Mouse hover snap to grid cell
     float grid_width = (float)grid_cols * (float)icon_size + (float)(grid_cols - 1) * (float)col_spacing;
     float start_x = CENTER_X - grid_width / 2.0f;
     float start_y = 330.0f;
@@ -1213,13 +1113,11 @@ void DrawBettingSetup(const LobbyState *g)
 {
     ClearBackground(BLACK);
     DrawText("BETTING MODE", (int)(CENTER_X - 200), 60, 60, GOLD);
-    // Player info
     if (g->p1_account_index >= 0)
     {
         DrawText(TextFormat("Your Tokens: %.0f", g->accounts[g->p1_account_index].tokens),
                  150, 140, 28, LIME);
     }
-    // Matchup selection
     DrawText("SELECT MATCHUP", (int)(CENTER_X - 180), 200, 40, SKYBLUE);
     Rectangle matchup_rects[4];
     const char *matchup_names[] = {
@@ -1246,7 +1144,6 @@ void DrawBettingSetup(const LobbyState *g)
                  (int)(matchup_rects[i].x + 20.0f),
                  (int)(matchup_rects[i].y + 50.0f), 20, YELLOW);
     }
-    // Bet input section
     DrawText("BET ON:", (int)(CENTER_X - 400.0f), 720, 30, ORANGE);
     Rectangle p1_bet_rect = {CENTER_X - 350.0f, 770.0f, 300.0f, 60.0f};
     Rectangle p2_bet_rect = {CENTER_X + 50.0f, 770.0f, 300.0f, 60.0f};
@@ -1260,7 +1157,6 @@ void DrawBettingSetup(const LobbyState *g)
     DrawRectangleLinesEx(p2_bet_rect, 3, p2_selected ? SKYBLUE : GRAY);
     DrawText(TextFormat("P2: %.0f tokens", g->betting.p2_bet_amount),
              (int)(p2_bet_rect.x + 20.0f), (int)(p2_bet_rect.y + 18.0f), 24, WHITE);
-    // Start button
     Rectangle start_btn = {CENTER_X - 150.0f, 880.0f, 300.0f, 70.0f};
     bool can_bet = (g->betting.p1_bet_amount > 0 || g->betting.p2_bet_amount > 0);
     DrawRectangleRec(start_btn, can_bet ? GREEN : DARKGRAY);
@@ -1273,7 +1169,6 @@ void UpdateBettingSetup(LobbyState *g, Vector2 mouse)
 {
     (void)mouse;
     int gamepad = GetActiveGamepad();
-    // Navigation
     if (IsKeyPressed(KEY_UP) || (gamepad >= 0 && XboxBtnPressed(gamepad, 11)))
     {
         g->menu_selection = (g->menu_selection - 1 + 6) % 6;
@@ -1282,14 +1177,12 @@ void UpdateBettingSetup(LobbyState *g, Vector2 mouse)
     {
         g->menu_selection = (g->menu_selection + 1) % 6;
     }
-    // Select matchup (0-3)
     if (g->menu_selection < 4)
     {
         g->betting.selected_matchup = g->menu_selection;
     }
-    // Adjust bets
     if (g->menu_selection == 4)
-    { // P1 bet
+    {
         if (IsKeyPressed(KEY_EQUAL) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0)))
         {
             g->betting.p1_bet_amount += 10.0;
@@ -1300,7 +1193,7 @@ void UpdateBettingSetup(LobbyState *g, Vector2 mouse)
         }
     }
     if (g->menu_selection == 5)
-    { // P2 bet
+    {
         if (IsKeyPressed(KEY_EQUAL) || (gamepad >= 0 && XboxBtnPressed(gamepad, 0)))
         {
             g->betting.p2_bet_amount += 10.0;
@@ -1314,27 +1207,20 @@ void UpdateBettingSetup(LobbyState *g, Vector2 mouse)
     {
         if (g->betting.p1_bet_amount > 0 || g->betting.p2_bet_amount > 0)
         {
-            // Deduct tokens IMMEDIATELY to prevent early exit exploits
             if (g->p1_account_index >= 0)
             {
                 double total_bet = g->betting.p1_bet_amount + g->betting.p2_bet_amount;
                 if (g->accounts[g->p1_account_index].tokens >= total_bet)
                 {
-                    // DEDUCT TOKENS NOW
                     g->accounts[g->p1_account_index].tokens -= total_bet;
-                    // Store original player account index BEFORE AI takes over
                     g->betting.original_player = g->p1_account_index;
-                    // Store which player they bet on
                     if (g->betting.p1_bet_amount > 0)
                         g->betting.bet_on_player = 1;
                     else
                         g->betting.bet_on_player = 2;
                     g->betting.bet_placed = true;
-                    // Flag active bet
                     g->accounts[g->p1_account_index].active_bet = true;
-                    // Save immediately to prevent rollback exploits
                     SaveAllAccounts(g);
-                    // Setup AI match (this will logout player and login AIs)
                     SetupBettingMatch(g);
                     SwitchState(g, STATE_JOKERS_GAMBIT);
                 }
@@ -1345,7 +1231,6 @@ void UpdateBettingSetup(LobbyState *g, Vector2 mouse)
             }
         }
     }
-    // Back
     if (IsKeyPressed(KEY_B) ||
         (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
@@ -1358,25 +1243,24 @@ void SetupBettingMatch(LobbyState *g)
     AIType p1_ai, p2_ai;
     switch (matchup)
     {
-    case 0: // FLINT vs THEA
+    case 0:
         p1_ai = AI_FLINT;
         p2_ai = AI_THEA;
         break;
-    case 1: // BOB vs FLINT
+    case 1:
         p1_ai = AI_BOB;
         p2_ai = AI_FLINT;
         break;
-    case 2: // THEA vs BOB
+    case 2:
         p1_ai = AI_THEA;
         p2_ai = AI_BOB;
         break;
-    case 3: // RANDOM
+    case 3:
     default:
         p1_ai = (AIType)(rand() % 3);
         p2_ai = (AIType)(rand() % 3);
         break;
     }
-    // Login AI accounts
     for (int i = 0; i < g->account_count; i++)
     {
         if (g->accounts[i].is_ai && g->accounts[i].ai_type == p1_ai)
@@ -1396,129 +1280,96 @@ void SetupBettingMatch(LobbyState *g)
     g->game_state->mode = MODE_BETTING;
     InitGame(g);
 }
-// ---------------------------------------------------------------
-// PLAYER 1 INPUT CHOICE
-// ---------------------------------------------------------------
 void DrawPVPSetupP1(const LobbyState *g)
 {
-    (void)g; // NEEDED
+    (void)g;
     DrawText("PLAYER 1", (int)(CENTER_X - 200), 300, 80, GOLD);
     DrawText("Press ENTER for Keyboard/Mouse", (int)(CENTER_X - 350), 450, 40, WHITE);
     DrawText("or", (int)(CENTER_X - 30), 500, 40, LIGHTGRAY);
     DrawText("Press A on Controller for Gamepad", (int)(CENTER_X - 350), 550, 40, WHITE);
 }
-
 void UpdatePVPSetupP1(LobbyState *g)
 {
-    // Check Keyboard
     if (IsKeyPressed(KEY_ENTER))
     {
-        g->p1_input_device = 0; // 0 = Keyboard
+        g->p1_input_device = 0;
         PlaySound(g_coin_sound);
         SwitchState(g, STATE_PVP_SETUP_P2);
         return;
     }
-    // Check Controllers
     for (int i = 0; i < 4; i++)
     {
         if (IsGamepadAvailableSDL(i) && XboxBtnPressed(i, 0))
-        {                               // A Button
-            g->p1_input_device = i + 1; // 1-4 = Gamepads
+        {
+            g->p1_input_device = i + 1;
             PlaySound(g_coin_sound);
             SwitchState(g, STATE_PVP_SETUP_P2);
             return;
         }
     }
 }
-
-// ---------------------------------------------------------------
-// PLAYER 2 INPUT CHOICE
-// ---------------------------------------------------------------
 void DrawPVPSetupP2(const LobbyState *g)
 {
-    (void)g; // NEEDED
+    (void)g;
     DrawText("PLAYER 2", (int)(CENTER_X - 200), 300, 80, GOLD);
     DrawText("Press ENTER for Keyboard/Mouse", (int)(CENTER_X - 350), 450, 40, WHITE);
     DrawText("or", (int)(CENTER_X - 30), 500, 40, LIGHTGRAY);
     DrawText("Press A on Controller for Gamepad", (int)(CENTER_X - 350), 550, 40, WHITE);
-
-    // Show P1 selection for context
     const char *p1_dev = (g->p1_input_device == 0) ? "Keyboard" : TextFormat("Gamepad %d", g->p1_input_device);
     DrawText(TextFormat("(P1 selected: %s)", p1_dev), (int)(CENTER_X - 150), 650, 20, GRAY);
 }
-
 void UpdatePVPSetupP2(LobbyState *g)
 {
-    // Check Keyboard (Only if P1 didn't take it)
     if (IsKeyPressed(KEY_ENTER) && g->p1_input_device != 0)
     {
         g->p2_input_device = 0;
-        StartPVPGame(g); // GO TO GAME
+        StartPVPGame(g);
         return;
     }
-    // Check Controllers
     for (int i = 0; i < 4; i++)
     {
         if (IsGamepadAvailableSDL(i) && XboxBtnPressed(i, 0))
         {
-            // Ensure P1 isn't using this controller
             if (g->p1_input_device != (i + 1))
             {
                 g->p2_input_device = i + 1;
-                StartPVPGame(g); // GO TO GAME
+                StartPVPGame(g);
                 return;
             }
         }
     }
 }
-
-// ---------------------------------------------------------------
-// MULTIPLAYER OR LOCAL PVP CHOICE
-// ---------------------------------------------------------------
-
 void DrawMultiplayerMode(const LobbyState *g)
 {
     (void)g;
     DrawText("SELECT PVP MODE", (int)(CENTER_X - 300), 200, 60, GOLD);
-
     bool single_hover = CheckCollisionPointRec(GetMousePosition(),
                                                (Rectangle){CENTER_X - 400, 400, 350, 100});
     bool online_hover = CheckCollisionPointRec(GetMousePosition(),
                                                (Rectangle){CENTER_X + 50, 400, 350, 100});
-
     Color single_col = single_hover ? LIME : DARKGREEN;
     Color online_col = online_hover ? LIME : DARKGREEN;
-
     DrawRectangleRec((Rectangle){CENTER_X - 400, 400, 350, 100}, single_col);
     DrawRectangleRec((Rectangle){CENTER_X + 50, 400, 350, 100}, online_col);
-
     DrawText("LOCAL PVP", (int)(CENTER_X - 340), 440, 40, WHITE);
     DrawText("ONLINE PVP", (int)(CENTER_X + 70), 440, 40, WHITE);
-
     DrawText("Both players share one screen", (int)(CENTER_X - 400), 600, 28, LIGHTGRAY);
     DrawText("Network play over LAN/Internet", (int)(CENTER_X - 400), 650, 28, LIGHTGRAY);
-
     DrawText("BACK (B)", (int)(CENTER_X - 70), (int)SCREEN_H - 80, 30, GRAY);
 }
-
 void UpdateMultiplayer(LobbyState *g)
 {
     Vector2 mouse = GetMousePosition();
     Rectangle local_rect = {CENTER_X - 400, 400, 350, 100};
     Rectangle online_rect = {CENTER_X + 50, 400, 350, 100};
-
     int gamepad = GetActiveGamepad();
-
-    // Back button
     if (IsKeyPressed(KEY_B) || (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
-        SwitchState(g, STATE_MODE_SELECTION); // Or relevant back state
+        SwitchState(g, STATE_MODE_SELECTION);
         return;
     }
-
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
     {
-        // Click Local
         if (CheckCollisionPointRec(mouse, local_rect))
         {
             g->pvp_multiplayer = false;
@@ -1527,73 +1378,57 @@ void UpdateMultiplayer(LobbyState *g)
             g->p2_input_device = -1;
             SwitchState(g, STATE_PVP_SETUP_P1);
         }
-        // Click Online
         else if (CheckCollisionPointRec(mouse, online_rect))
         {
             SwitchState(g, STATE_ONLINE_CHOICE);
         }
     }
 }
-
 void DrawOnlineChoice(const LobbyState *g)
 {
     (void)g;
     DrawText("ONLINE PVP", (int)(CENTER_X - 250), 200, 60, GOLD);
-
     bool host_hover = CheckCollisionPointRec(GetMousePosition(),
                                              (Rectangle){CENTER_X - 400, 400, 350, 100});
     bool connect_hover = CheckCollisionPointRec(GetMousePosition(),
                                                 (Rectangle){CENTER_X + 50, 400, 350, 100});
-
     Color host_col = host_hover ? LIME : DARKGREEN;
     Color connect_col = connect_hover ? LIME : DARKBLUE;
-
     DrawRectangleRec((Rectangle){CENTER_X - 400, 400, 350, 100}, host_col);
     DrawRectangleRec((Rectangle){CENTER_X + 50, 400, 350, 100}, connect_col);
-
     DrawText("HOST GAME", (int)(CENTER_X - 330), 440, 40, WHITE);
     DrawText("CONNECT", (int)(CENTER_X + 90), 440, 40, WHITE);
-
     DrawText("Wait for P2 to connect", (int)(CENTER_X - 400), 550, 24, LIGHTGRAY);
     DrawText("Connect to host's IP", (int)(CENTER_X + 50), 550, 24, LIGHTGRAY);
-
     DrawText("WARNING: Online PvP is experimental!", (int)(CENTER_X - 280), 700, 28, ORANGE);
     DrawText("BACK (B)", (int)(CENTER_X - 70), (int)SCREEN_H - 80, 30, GRAY);
 }
-
 void UpdateOnlineChoice(LobbyState *g)
 {
     Vector2 mouse = GetMousePosition();
     Rectangle host_rect = {CENTER_X - 400, 400, 350, 100};
     Rectangle join_rect = {CENTER_X + 50, 400, 350, 100};
-
     int gamepad = GetActiveGamepad();
-
-    // Back button
     if (IsKeyPressed(KEY_B) || (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
         SwitchState(g, STATE_MULTIPLAYER);
         return;
     }
-
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-
     {
-        // Click Host
         if (CheckCollisionPointRec(mouse, host_rect))
         {
             InitNetworkSystem();
             if (StartHosting(g, 7777))
             {
                 g->is_host = true;
-                g->p1_input_device = 0;  // Host uses Keyboard/Mouse for P1
-                g->p2_input_device = -1; // P2 is remote
+                g->p1_input_device = 0;
+                g->p2_input_device = -1;
                 g->game_state->mode = MODE_ONLINE;
                 unsigned int seed = (unsigned int)time(NULL);
                 g->rng_seed = seed;
-                srand(seed); // Seed the host's game
+                srand(seed);
                 SendPacket(g, PKT_SEED, (int)seed);
-                // Go to waiting screen instead of initializing game
                 SwitchState(g, STATE_HOSTING_WAITING);
                 ShowNotification(g, "HOSTING", "Waiting for player to connect...");
             }
@@ -1602,7 +1437,6 @@ void UpdateOnlineChoice(LobbyState *g)
                 ShowNotification(g, "ERROR", "Failed to start hosting on port 7777");
             }
         }
-        // Click Join
         else if (CheckCollisionPointRec(mouse, join_rect))
         {
             InitNetworkSystem();
@@ -1610,15 +1444,11 @@ void UpdateOnlineChoice(LobbyState *g)
             {
                 g->is_host = false;
                 g->net_role = NET_CLIENT;
-                g->p1_input_device = -1; // P1 is remote (host)
-                g->p2_input_device = 0;  // Client controls P2
-
+                g->p1_input_device = -1;
+                g->p2_input_device = 0;
                 g->game_state->mode = MODE_ONLINE;
-                WhereDoiSit(g); // Move client to P2 seat
-                // Send local P2 name to Host
-                // Note:   need a SendStringPacket helper or send the index if accounts match
+                WhereDoiSit(g);
                 SendPacket(g, PKT_CLIENT_INFO, g->game_state->p2_account_index);
-                // Don't initialize yet - wait for seed from host
                 SwitchState(g, STATE_JOKERS_GAMBIT);
                 ShowNotification(g, "CONNECTED", "Joined game as P2!");
             }
@@ -1633,50 +1463,37 @@ void DrawHostingWaiting(const LobbyState *g)
 {
     (void)g;
     ClearBackground(BLACK);
-
     DrawText("HOSTING GAME", (int)(CENTER_X - 250), 200, 60, GOLD);
     DrawText("Waiting for player to connect...", (int)(CENTER_X - 320), 350, 40, WHITE);
-
-    // Animated dots
     int dots = ((int)(GetTime() * 2)) % 4;
     char loading[5] = "";
     for (int i = 0; i < dots; i++)
         loading[i] = '.';
     loading[dots] = '\0';
     DrawText(loading, (int)(CENTER_X - 30), 450, 60, YELLOW);
-
     DrawText("Port: 7777", (int)(CENTER_X - 100), 550, 30, LIGHTGRAY);
     DrawText("CANCEL (ESC or B)", (int)(CENTER_X - 150), (int)SCREEN_H - 100, 30, GRAY);
 }
-
 void UpdateHostingWaiting(LobbyState *g)
 {
     int gamepad = GetActiveGamepad();
-
-    // Check for client connection
     if (CheckForClient(g))
     {
-        // Client connected! Initialize game
         InitGame(g);
         SwitchState(g, STATE_JOKERS_GAMBIT);
         ShowNotification(g, "CONNECTED", "Player joined! Game starting...");
         return;
     }
-
-    // Cancel hosting
-    if ( IsKeyPressed(KEY_B) ||
+    if (IsKeyPressed(KEY_B) ||
         (gamepad >= 0 && XboxBtnPressed(gamepad, 1)))
     {
-        // Close listen socket
         if (g->net_listen_socket >= 0)
         {
             closesocket(g->net_listen_socket);
             g->net_listen_socket = -1;
         }
-
         g->net_role = NET_NONE;
         g->is_host = false;
-
         SwitchState(g, STATE_ONLINE_CHOICE);
         ShowNotification(g, "CANCELLED", "Hosting cancelled");
     }

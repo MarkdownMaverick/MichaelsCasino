@@ -1,14 +1,10 @@
 #include "reelsui.h"
-#include "slotreels.h"    // For full SlotReelsState and shared constants
-#include "jokersgambit.h" // For GetAtlasSourceRect, g_atlas_texture, etc.
-// ============================================================================
-// UI HELPERS
-// ============================================================================
+#include "slotreels.h"
+#include "jokersgambit.h"
 float ui_x = 20.0f;
 float ui_y = 20.0f;
 float ui_w = 560.0f;
 float ui_h = 300.0f;
-
 static Rectangle GetBetButton(int idx)
 {
     return (Rectangle){
@@ -17,7 +13,6 @@ static Rectangle GetBetButton(int idx)
         BTN_WIDTH,
         BTN_HEIGHT};
 }
-// (   ButtonConfig struct, GetButtonConfig, GetSpinButton, GetGambleButton, ApplyWaveEffect as-is)
 static Rectangle GetPaylineButton(int idx)
 {
     return (Rectangle){
@@ -48,14 +43,12 @@ static ButtonConfig GetButtonConfig(void)
         .btn_height = 80.0f,
         .gap = 30.0f,
         .center_x = (float)GetScreenWidth() / 2.0f,
-        .spin_y = REEL_START_Y + (VISIBLE_SYMBOLS * SYMBOL_SIZE) + 100.0f,  // below reels
-        .gamble_y = REEL_START_Y + (VISIBLE_SYMBOLS * SYMBOL_SIZE) + 200.0f // below spin
-    };
+        .spin_y = REEL_START_Y + (VISIBLE_SYMBOLS * SYMBOL_SIZE) + 100.0f,
+        .gamble_y = REEL_START_Y + (VISIBLE_SYMBOLS * SYMBOL_SIZE) + 200.0f};
 }
 static Rectangle GetSpinButton(void)
 {
     ButtonConfig cfg = GetButtonConfig();
-    // Right of rightmost hold button (REELS_COUNT=5, REEL_GAP=10ish)
     float hold_end_x = REEL_START_X + (5 * (REEL_WIDTH + REEL_GAP)) + 20.0f;
     return (Rectangle){hold_end_x, cfg.spin_y, cfg.btn_width, cfg.btn_height};
 }
@@ -65,22 +58,17 @@ static Rectangle GetGambleButton(void)
     float hold_end_x = REEL_START_X + (5 * (REEL_WIDTH + REEL_GAP)) + 20.0f;
     return (Rectangle){hold_end_x, cfg.gamble_y, cfg.btn_width, cfg.btn_height};
 }
-// Add after GetGambleButton()
 static Rectangle ApplyWaveEffect(Rectangle base, float time, float phase)
 {
-    float amplitude = 3.0f; // pixels up/down
+    float amplitude = 3.0f;
     float speed = 2.5f;
     float wave = sinf(time * speed + phase) * amplitude;
     Rectangle waved = base;
     waved.y += wave;
     return waved;
 }
-// ============================================================================
-// DRAW LOGIC
-// ============================================================================
 void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
 {
-    // Calculate layout dimensions
     const float TOTAL_REEL_WIDTH = (REELS_COUNT * REEL_WIDTH) + ((REELS_COUNT - 1) * REEL_GAP);
     const float START_X = CENTER_X - (TOTAL_REEL_WIDTH / 2.0f);
     const float CONTAINER_W = TOTAL_REEL_WIDTH + 40.0f;
@@ -88,9 +76,7 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
     const float CONTAINER_X = CENTER_X - (CONTAINER_W / 2.0f);
     const float CONTAINER_Y = REEL_START_Y - 20.0f;
     const float CENTER_REEL_Y = REEL_START_Y + (VISIBLE_SYMBOLS * SYMBOL_SIZE) / 2.0f;
-    // Draw background
     DrawRectangle((int)CONTAINER_X, (int)CONTAINER_Y, (int)CONTAINER_W, (int)CONTAINER_H, BLACK);
-    // Draw reels (with scissor mode for clipping)
     BeginScissorMode((int)CONTAINER_X, (int)REEL_START_Y, (int)CONTAINER_W, (int)(VISIBLE_SYMBOLS * SYMBOL_SIZE));
     for (int r = 0; r < REELS_COUNT; r++)
     {
@@ -99,14 +85,12 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
         {
             float rawY = REEL_START_Y + ((float)s * SYMBOL_SIZE) + slot->offset_y[r];
             int idx = (s + 2) % (VISIBLE_SYMBOLS + 2);
-            // Curve effect
             float distFromCenter = (rawY + (SYMBOL_SIZE / 2.0f) - CENTER_REEL_Y) / (SYMBOL_SIZE * 1.5f);
             float curveOffset = (distFromCenter * distFromCenter * distFromCenter) * 12.0f;
             float displayY = rawY + curveOffset;
             float squash = 1.0f - (fabsf(distFromCenter) * 0.10f);
             float displayH = SYMBOL_SIZE * squash;
             float finalY = displayY + (SYMBOL_SIZE - displayH) / 2.0f;
-            // Blur effect
             float blur = 0.0f;
             if (slot->state == SLOT_STATE_SPINNING && !slot->stopped[r])
             {
@@ -130,7 +114,6 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
         }
     }
     EndScissorMode();
-    // Draw paylines
     for (int i = 0; i < 3; i++)
     {
         float lineY = REEL_START_Y + ((float)i * SYMBOL_SIZE) + (SYMBOL_SIZE / 2.0f);
@@ -144,7 +127,6 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
             lineColor = GOLD;
             thick = 2.2f;
         }
-        // Only show green line if timer is still active
         if (slot->state == SLOT_STATE_SHOW_WIN && slot->win_lines[i] && slot->win_timer > 0.0f)
         {
             lineColor = GREEN;
@@ -155,7 +137,6 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
                    thick, lineColor);
     }
     DrawRectangleLinesEx((Rectangle){CONTAINER_X, CONTAINER_Y, CONTAINER_W, CONTAINER_H}, 4.0f, GOLD);
-    // Draw hold buttons
     for (int r = 0; r < REELS_COUNT; r++)
     {
         Rectangle hold_rect = GetHoldButton(r);
@@ -181,22 +162,19 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
         DrawRectangleRec(btn, btn_color);
         DrawRectangleLinesEx(btn, 6.0f, can_insert ? LIME : GRAY);
         const char *btn_text = "INSERT TOKENS (1)";
-        // === FIXED: Safe centering with float math BEFORE cast ===
         int text_width = MeasureText(btn_text, 40);
         float center_offset = (float)text_width / 2.0f;
         float text_x_float = btn.x + btn.width / 2.0f - center_offset;
         float text_y_float = btn.y + 30.0f;
         DrawText(btn_text,
-                 (int)text_x_float, // Safe: float → int after all math done
+                 (int)text_x_float,
                  (int)text_y_float,
                  40,
                  text_color);
-        // Controls hint — centered safely
         const char *hint_text = "MOUSE CLICK or X BUTTON";
         int hint_width = MeasureText(hint_text, 24);
         float hint_x = CENTER_X - (float)hint_width / 2.0f;
         DrawText(hint_text, (int)hint_x, (int)(btn.y + 120.0f), 24, GRAY);
-        // Token display
         const char *token_text = TextFormat("Tokens: %.0f", acc->tokens);
         int token_width = MeasureText(token_text, 40);
         DrawText(token_text, (int)(CENTER_X - (float)token_width / 2.0f), (int)(btn.y - 100.0f), 40, GOLD);
@@ -206,13 +184,11 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
             DrawText("Go to Shop or play Joker's Gambit",
                      (int)(CENTER_X - 280.0f), (int)(btn.y + 160.0f), 28, LIGHTGRAY);
         }
-        // Exit hint — compliant keybind (no ESCAPE)
         const char *exit_text = "B BUTTON or BACKSPACE to exit";
         int exit_width = MeasureText(exit_text, 28);
         DrawText(exit_text, (int)(CENTER_X - (float)exit_width / 2.0f), (int)(SCREEN_H - 100.0f), 28, GRAY);
         return;
     }
-    // Player UI panel
     if (core->p1_account_index >= 0)
     {
         const Account *acc = &core->accounts[core->p1_account_index];
@@ -232,8 +208,6 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
         DrawText(TextFormat("TOTAL WIN: %.0f TOKENS", slot->total_win_this_spin),
                  (int)ui_x + 15, (int)ui_y + 202, 18, GOLD);
         DrawText("PRESS `Y` TO GAMBLE", (int)ui_x + 15, (int)ui_y + 220, 16, YELLOW);
-        // xxx
-        //  Show winning hand info
         if (slot->state == SLOT_STATE_SHOW_WIN && slot->total_win_this_spin > 0)
         {
             const char *hand_names[] = {
@@ -251,7 +225,6 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
             }
         }
     }
-    // Draw bet buttons
     const char *bet_labels[] = {"1 TOKEN", "5 TOKENS", "10 TOKENS"};
     BetAmount bet_values[] = {BET_AMOUNT_1, BET_AMOUNT_5, BET_AMOUNT_10};
     DrawText("BET AMOUNT", (int)BET_BTN_START_X, (int)BET_BTN_START_Y - 40, 20, GOLD);
@@ -270,7 +243,6 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
                  (int)(btn.y + (btn.height - 30) / 2.0f),
                  30, WHITE);
     }
-    // Draw payline buttons
     const char *line_labels[] = {"TOP", "MIDDLE", "BOTTOM", "ALL"};
     PaylineSelection line_values[] = {PAYLINE_TOP, PAYLINE_MIDDLE, PAYLINE_BOTTOM, PAYLINE_ALL};
     DrawText("PAYLINES", (int)LINE_BTN_START_X, (int)LINE_BTN_START_Y - 40, 20, YELLOW);
@@ -293,13 +265,12 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
     float wave_time = (float)GetTime();
     Rectangle spin_base = GetSpinButton();
     Rectangle gamble_base = GetGambleButton();
-    Rectangle spin_btn = ApplyWaveEffect(spin_base, wave_time, 0.0f);     // phase 0
-    Rectangle gamble_btn = ApplyWaveEffect(gamble_base, wave_time, 2.0f); // phase
-    // Draw spin button & Gamble button
+    Rectangle spin_btn = ApplyWaveEffect(spin_base, wave_time, 0.0f);
+    Rectangle gamble_btn = ApplyWaveEffect(gamble_base, wave_time, 2.0f);
     bool gamble_selected = (XboxBtnPressed(gamepad, 3));
     Color gamble_bg = gamble_selected ? GRAY : BLACK;
     Color gamble_border = gamble_selected ? GOLD : LIME;
-    DrawRectangleRec(gamble_btn, gamble_bg); // ← USE gamble_btn (waved)
+    DrawRectangleRec(gamble_btn, gamble_bg);
     DrawRectangleLinesEx(gamble_btn, gamble_selected ? 5.0f : 3.0f, gamble_border);
     const char *gamble_text = "GAMBLE";
     int gamble_w = MeasureText(gamble_text, 50);
@@ -307,11 +278,10 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
              (int)(gamble_btn.x + (gamble_btn.width - (float)gamble_w) / 2.0f),
              (int)(gamble_btn.y + (gamble_btn.height - 50) / 2.0f),
              50, YELLOW);
-    // SPIN BUTTON
-    bool spin_selected = (slot->selected_button == 7 || XboxBtnPressed(gamepad, 2));
+    bool spin_selected = (slot->selected_button == 7 || XboxBtnPressed(gamepad, BTN_X));
     Color spin_bg = spin_selected ? DARKBLUE : BLACK;
     Color spin_border = spin_selected ? GOLD : LIME;
-    DrawRectangleRec(spin_btn, spin_bg); // ← USE spin_btn (waved)
+    DrawRectangleRec(spin_btn, spin_bg);
     DrawRectangleLinesEx(spin_btn, spin_selected ? 5.0f : 3.0f, spin_border);
     const char *spin_text = "SPIN";
     int spin_w = MeasureText(spin_text, 50);
@@ -319,50 +289,42 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
              (int)(spin_btn.x + (spin_btn.width - (float)spin_w) / 2.0f),
              (int)(spin_btn.y + (spin_btn.height - 50) / 2.0f),
              50, YELLOW);
-    // Draw total bet info
     int payline_count = GetActivePaylineCount(slot->payline_mode);
     double total_bet = (double)slot->bet_amount * payline_count;
     DrawText(TextFormat("TOTAL BET: %.0f TOKENS", total_bet),
              (int)ui_x + 15, (int)ui_y + 184, 18, GOLD);
     DrawText("TAB/D-Pad: Navigate | A/Enter: Select | B: Back",
              (int)(CENTER_X - 300.0f), (int)(SCREEN_H - 30), 20, DARKGRAY);
-    // Draw gamble screen
     if (slot->state == SLOT_STATE_GAMBLE)
     {
         DrawRectangle(0, 0, (int)SCREEN_W, (int)SCREEN_H, Fade(BLACK, 0.85f));
-        // Fold button (top left)
         Rectangle fold_btn = {20, 20, 120, 50};
         DrawRectangleRec(fold_btn, DARKGREEN);
         DrawRectangleLinesEx(fold_btn, 2.0f, LIME);
         DrawText("FOLD", 50, 32, 24, WHITE);
         DrawText(TextFormat("%.0f", slot->gamble_current), 30, 55, 16, YELLOW);
-        // Title
         DrawText("DOUBLE OR NOTHING!", (int)(CENTER_X - 150.0f), 100, 40, GOLD);
         DrawText(TextFormat("WIN POT: %.0f TOKENS", slot->gamble_current),
                  (int)(CENTER_X - 140.0f), 150, 24, YELLOW);
         DrawText(TextFormat("STEP %d / %d", slot->gamble_steps + 1, MAX_GAMBLE_STEPS),
                  (int)(CENTER_X - 60.0f), 180, 20, DARKGRAY);
-        // Card layout: 6 cards in a row
         float card_w = 140.0f;
         float card_h = 210.0f;
         float card_spacing = 20.0f;
         float total_w = (6 * card_w) + (5 * card_spacing);
         float start_x = CENTER_X - (total_w / 2.0f);
         float card_y = SCREEN_H / 2.0f - card_h / 2.0f;
-        // Draw first card (face up)
         Rectangle cardSrc = GetAtlasSourceRect(slot->gamble_card.rank, slot->gamble_card.suit);
         Rectangle cardDest = {start_x, card_y, card_w, card_h};
         DrawTexturePro(g_atlas_texture, cardSrc, cardDest, (Vector2){0, 0}, 0.0f, WHITE);
         DrawRectangleLinesEx(cardDest, 3.0f, GOLD);
         DrawText("CURRENT", (int)(start_x + 30.0f), (int)(card_y - 30.0f), 16, WHITE);
-        // Draw remaining 5 cards
         for (int i = 0; i < 5; i++)
         {
             float x = start_x + ((float)(i + 1) * (card_w + card_spacing));
             Rectangle dest = {x, card_y, card_w, card_h};
             if (i < slot->gamble_steps)
             {
-                // Already revealed
                 Symbol revealed = slot->gamble_deck[i];
                 Rectangle src = GetAtlasSourceRect(revealed.rank, revealed.suit);
                 DrawTexturePro(g_atlas_texture, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
@@ -370,20 +332,17 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
             }
             else if (slot->show_gamble_result && i == slot->gamble_steps)
             {
-                // Currently revealing
                 Rectangle src = GetAtlasSourceRect(slot->gamble_next_card.rank, slot->gamble_next_card.suit);
                 DrawTexturePro(g_atlas_texture, src, dest, (Vector2){0, 0}, 0.0f, WHITE);
                 DrawRectangleLinesEx(dest, 3.0f, slot->gamble_current > 0 ? LIME : RED);
             }
             else
             {
-                // Face down
                 Rectangle back_src = GetAtlasBackCard();
                 DrawTexturePro(g_atlas_texture, back_src, dest, (Vector2){0, 0}, 0.0f, WHITE);
                 DrawRectangleLinesEx(dest, 2.0f, GRAY);
             }
         }
-        // Instructions
         float instr_y = card_y + card_h + 40.0f;
         if (slot->show_gamble_result)
         {
@@ -409,7 +368,6 @@ void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot)
         {
             DrawText("Will the next card be HIGHER or LOWER?",
                      (int)(CENTER_X - 220.0f), (int)instr_y, 20, WHITE);
-            // Draw buttons
             float btn_y = instr_y + 40.0f;
             float btn_w = 150.0f;
             float btn_h = 60.0f;
