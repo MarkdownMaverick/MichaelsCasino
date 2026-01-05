@@ -4,6 +4,7 @@
 #include "gamepad_sdl.h"
 #include "jokersgambit.h"
 #include "slotreels.h"
+#include "reelsui.h"
 Music g_background_music = {0};
 Texture2D g_achievements_atlas = {0};
 SlotReelsState g_slot_state = {0};

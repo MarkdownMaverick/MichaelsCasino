@@ -10,3 +10,4 @@ obj/slotreels.o
 obj/jokersgambit.o
 obj/aibots.o
 obj/multiplayer.o
+obj/reelsui.o

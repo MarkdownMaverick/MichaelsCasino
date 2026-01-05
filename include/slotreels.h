@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include "jokersgambit.h" // For Rank, Suit, GetAtlasSourceRect, CARD_W_SCALED, etc.
 #include "gamepad_sdl.h"  // For XboxBtnPressed
+
 // New: Struct to hold both rank and suit for each symbol
 typedef struct
 {
@@ -10,6 +11,7 @@ typedef struct
     Suit suit;
 } Symbol;
 // Slot Reels Constants
+#define MAX_DECK_SIZE 52
 #define REELS_COUNT 5
 #define VISIBLE_SYMBOLS 3
 #define SYMBOL_SIZE (CARD_H_SCALED * 1.1f)
@@ -19,6 +21,8 @@ typedef struct
 #define REEL_START_Y (SCREEN_H * 0.15f)
 #define SPIN_DURATION 2.5f
 #define STAGGER_DELAY 0.15f
+#define MAX_GAMBLE_STEPS 5
+
 // Bet levels
 #define BET_1_TOKENS 1
 #define BET_2_TOKENS 2
@@ -44,8 +48,7 @@ typedef enum
     PAYLINE_BOTTOM = 2,
     PAYLINE_ALL = 3
 } PaylineSelection;
-typedef struct
-{
+typedef struct SlotReelsState {
         Symbol symbols[REELS_COUNT][VISIBLE_SYMBOLS + 2];
     float offset_y[REELS_COUNT];
     float target_offset[REELS_COUNT];
@@ -90,5 +93,8 @@ typedef enum
 // Function prototypes
 void InitSlotReels(SlotReelsState *slot);
 void UpdateSlotReels(LobbyState *core, SlotReelsState *slot);
-void DrawSlotReels(const LobbyState *core, const SlotReelsState *slot);
+// Exposed for UI drawing
+PokerHand EvaluateLine(const Symbol hand[REELS_COUNT]);
+int GetActivePaylineCount(PaylineSelection mode);
+
 #endif // SLOTREELS_H
